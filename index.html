@@ -26,7 +26,7 @@
                 <p>I'm a student at UC San Diego majoring in Math and Computer Science.
                 </p>
                 <p>
-                  At UCSD I've 
+                  At UCSD, I have embraced the opportunity to explore and refine my passion for problem solving by taking on rigorous and challenging courses. A lifelong love of puzzles has always fueled my interest in math, and I try to use coding as a tool to creatively visualize and ground the abstract concepts I have encountered in my studies. I certainly plan to continue learning math on my own after college and hope to continue solving complex problems creatively wherever my career ends up taking me. Please check out my projects below to learn more about my interests and skills, and feel free to reach out with any questions!
                 </p>
                 <p style="text-align:center">
                   <a href="mailto:colinwcommans@gmail.com">Email</a> &nbsp;/&nbsp;
@@ -45,7 +45,7 @@
               <td style="padding:16px;width:100%;vertical-align:middle">
                 <h2>Projects</h2>
                 <p>
-                  I'm interested in machine learning algorithms, deep learning, and generative AI.
+                  I'm interested in machine learning algorithms, deep learning, and generative (particularly adversarial) AI.
                 </p>
               </td>
             </tr>
@@ -54,50 +54,75 @@
 
 
 
-    <tr onmouseout="power_stop()" onmouseover="power_start()">
-      <td style="padding:16px;width:20%;vertical-align:middle">
-        <div class="one">
-          <div class="two" id='power_image'><video  width=100% height=100% muted autoplay loop>
-          <source src="images/power.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-          </video></div>
-          <img src='images/power.png' width="160">
-        </div>
-        <script type="text/javascript">
-          function power_start() {
-            document.getElementById('power_image').style.opacity = "1";
-          }
+    		 <tr onmouseout="power_stop()" onmouseover="power_start()">
+                  <td style="padding:16px;width:20%;vertical-align:middle">
+                    <div class="one">
+                      <div class="two" id='power_image'>
+                        <video width="100%" height="100%" muted autoplay loop>
+                          <source src="images/power.mp4" type="video/mp4">
+                          Your browser does not support the video tag.
+                        </video>
+                      </div>
+                      <img src="images/power.png" width="160" alt="Project visual">
+                    </div>
+                    <script type="text/javascript">
+                      function power_start() {
+                        document.getElementById('power_image').style.opacity = "1";
+                      }
+                      function power_stop() {
+                        document.getElementById('power_image').style.opacity = "0";
+                      }
+                      power_stop();
+                    </script>
+                  </td>
+                  <td style="padding:8px;width:80%;vertical-align:middle">
+                    <a href="https://github.com/ccommans/sentiment-analysis">
+                      <span class="papertitle">Predictive Model: Sentiment Analysis of Text</span>
+                    </a>
+                    <br>
+                    <strong>Python, scikit-learn, Flask</strong>
+                    <br>
+                    <p>
+                      Developed a sentiment analysis model to predict positive or negative text from Amazon book reviews. Data preprocessing, model optimization via GridSearch, and a Flask web app enable real-time sentiment predictions. Achieved an F1 score of 82%.
+                    </p>
+                  </td>
+                </tr>
 
-          function power_stop() {
-            document.getElementById('power_image').style.opacity = "0";
-          }
-          power_stop()
-        </script>
-      </td>
-      <td style="padding:8px;width:80%;vertical-align:middle">
-        <a href="https://x.com/jon_barron/status/1891918200931061996">
-			<span class="papertitle">A Power Transform
-</span>
-        </a>
-        <br>
-				<strong>Jonathan T. Barron</strong>
-        <br>
-        <em>arXiv</em>, 2025
-        <br>
-        <a href="https://x.com/jon_barron/status/1891918200931061996">tweet</a>
-        /
-        <a href="https://arxiv.org/abs/2502.10647">arXiv</a>
-        <p></p>
-        <p>
-				A slight tweak to the Box-Cox power transform generalizes a variety of curves, losses, kernel functions, probability distributions, bump functions, and neural network activation functions.
-        </p>
-      </td>
-    </tr>
+		<tr>
+                  <td style="padding:16px;width:20%;vertical-align:middle">
+                    <div class="one">
+                      <div class="two" id='ever_image'>
+                        <img src="images/ever_after.png" width="100%" alt="After effect">
+                      </div>
+                      <img src="images/ever_before.png" width="100%" alt="Before effect">
+                    </div>
+                    <script type="text/javascript">
+                      function ever_start() {
+                        document.getElementById('ever_image').style.opacity = "1";
+                      }
+                      function ever_stop() {
+                        document.getElementById('ever_image').style.opacity = "0";
+                      }
+                      ever_stop();
+                    </script>
+                  </td>
+                  <td style="padding:8px;width:80%;vertical-align:middle">
+                    <a href="https://github.com/ccommans/LSGAN-project">
+                      <span class="papertitle">LSGAN Project</span>
+                    </a>
+                    <br>
+                    <strong>Deep Learning, PyTorch</strong>
+                    <br>
+                    <p>
+                      Re-implemented the Least Squares Generative Adversarial Network (LSGAN) framework, exploring challenges such as vanishing gradients and mode collapse. Experimented with different parameterizations and loss functions (Hinge, L1) on datasets like EMNIST, KTH-TIPS, and Tiny ImageNet.
+                    </p>
+                  </td>
+                </tr>
 
           </tbody></table>
 
           
-					<table style="width:100%; margin:0 auto; border:0; border-spacing:0; padding:16px;"><tbody>
+	<table style="width:100%; margin:0 auto; border:0; border-spacing:0; padding:16px;"><tbody>
             <tr>
               <td>
                 <h2>Miscellanea</h2>
@@ -106,44 +131,45 @@
           </tbody></table>
           <table style="width:100%;border:0px;border-spacing:0px;border-collapse:separate;margin-right:auto;margin-left:auto;"><tbody>
             
-           
-            <tr>
-              <td align="center" style="padding:16px;width:20%;vertical-align:middle">
-						     <div class="colored-box" style="background-color: #fcb97d;">
-								 <h2>Micropapers</h2>
-								 </div>
-              </td>
-              <td style="padding:8px;width:80%;vertical-align:middle">
-                <a href="https://arxiv.org/abs/2112.11687">Squareplus: A Softplus-Like Algebraic Rectifier</a>
-                <br>
-                <a href="https://arxiv.org/abs/2010.09714">A Convenient Generalization of Schlick's Bias and Gain Functions</a>
-                <br>
-                <a href="https://arxiv.org/abs/1704.07483">Continuously Differentiable Exponential Linear Units</a>
-                <br>
-                <a href="https://jonbarron.info/data/cvpr2023_llm_workshop_annotated.pdf">Scholars & Big Models: How Can Academics Adapt?</a>
-              </td>
-            </tr>
+                <tr>
+                  <td align="center" style="padding:16px;width:20%;vertical-align:middle">
+                    <div class="colored-box" style="background-color: #fcb97d;">
+                      <h2>Technical Skills</h2>
+                    </div>
+                  </td>
+                  <td style="padding:8px;width:80%;vertical-align:middle">
+                    <ul>
+                      <li><strong>Programming Languages:</strong> Java, C/C++, MATLAB, SQL, JavaScript, Python</li>
+                      <li><strong>Developer Tools:</strong> Git, VS Code, Jupyter Notebook</li>
+                      <li><strong>Libraries:</strong> Matplotlib, Numpy, Pandas, Scikit-learn, PyTorch</li>
+                      <li><strong>Frameworks:</strong> JUnit, Flask</li>
+                      <li><strong>MS Office:</strong> Word, Excel, PowerPoint</li>
+                    </ul>
+                  </td>
+                </tr>
 
 
-            <tr>
-              <td align="center" style="padding:16px;width:20%;vertical-align:middle">
-						     <div class="colored-box" style="background-color: #aaba9e;">
-								 <h2>Recorded Talks</h2>
-								 </div>
-              </td>
-              <td style="padding:8px;width:80%;vertical-align:center">
-                <a href="https://www.youtube.com/watch?v=h9vq_65eDas">View Dependent Podcast, 2024</a>
-								<br>
-                <a href="https://www.youtube.com/watch?v=4tDhYsFuEqo">Bay Area Robotics Symposium, 2023
-</a>
-								<br>
-                <a href="https://youtu.be/TvWkwDYtBP4?t=7604">EGSR Keynote, 2021</a>
-								<br>
-								<a href="https://www.youtube.com/watch?v=nRyOzHpcr4Q">TUM AI Lecture Series, 2020</a>
-								<br>
-								<a href="https://www.youtube.com/watch?v=HfJpQCBTqZs">Vision & Graphics Seminar at MIT, 2020</a>
-              </td>
-            </tr>
+                <tr>
+                  <td align="center" style="padding:16px;width:20%;vertical-align:middle">
+                    <div class="colored-box" style="background-color: #aaba9e;">
+                      <h2>Selected Coursework</h2>
+                    </div>
+                  </td>
+                  <td style="padding:8px;width:80%;vertical-align:middle">
+                    <ul>
+                      <li>Calculus on Manifolds (MATH 150B)</li>
+                      <li>Differential Geometry (MATH 150A)</li>
+                      <li>Abstract Algebra I (MATH 100A)</li>
+                      <li>Foundations of Real Analysis I (MATH 140A)</li>
+                      <li>Honors Linear Algebra (MATH 31AH)</li>
+                      <li>Design & Analysis of Algorithms (CSE 101)</li>
+                      <li>Advanced Data Structures (CSE 100R)</li>
+                      <li>Theory of Computation (CSE 105)</li>
+                      <li>Intro to Deep Learning & Applications (ECE 176)</li>
+                      <li>Introduction to Probability (MATH 180A)</li>
+                    </ul>
+                  </td>
+                </tr>
 
             <tr>
               <td align="center" style="padding:16px;width:20%;vertical-align:middle">
