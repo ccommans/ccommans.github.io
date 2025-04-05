@@ -26,7 +26,7 @@
                 <p>I'm a student at UC San Diego majoring in Math and Computer Science.
                 </p>
                 <p>
-                  At UCSD, I have embraced the opportunity to explore and refine my passion for problem solving by taking on rigorous and challenging courses. A lifelong love of puzzles has always fueled my interest in math, and I try to use coding as a tool to creatively visualize and ground the abstract concepts I have encountered in my studies. I certainly plan to continue learning math on my own after college and hope to continue solving complex problems creatively wherever my career ends up taking me. Please check out my projects below to learn more about my interests and skills, and feel free to reach out with any questions!
+                  At UCSD, I have embraced the opportunity to explore and refine my passion for problem solving by taking on rigorous and challenging courses. A lifelong love of puzzles has always fueled my interest in math, and I try to use coding as a tool to creatively visualize and ground the abstract concepts I have encountered in my studies. I certainly plan to keep learning math on my own after college and hope to continue solving complex problems creatively wherever my career ends up taking me. Please check out my projects below to learn more about my interests and skills, and feel free to reach out with any questions!
                 </p>
                 <p style="text-align:center">
                   <a href="mailto:colinwcommans@gmail.com">Email</a> &nbsp;/&nbsp;
@@ -51,10 +51,40 @@
             </tr>
           </tbody></table>
           <table style="width:100%;border:0px;border-spacing:0px 10px;border-collapse:separate;margin-right:auto;margin-left:auto;"><tbody>
+		  
 
-
-
-    		 <tr onmouseout="power_stop()" onmouseover="power_start()">
+    		<tr onmouseout="lsgan_stop()" onmouseover="lsgan_start()">
+	        <td style="padding:16px;width:20%;vertical-align:middle">
+	          <div class="one">
+	            <div class="two" id='emnist_image'>
+	              <img src='images/emnist_after.jpg' width="150"></div>
+	            <img src='images/emnist_before.jpg' width="150">
+	          </div>
+	          <script type="text/javascript">
+	            function lsgan_start() {
+	              document.getElementById('emnist_image').style.opacity = "1";
+	            }
+	
+	            function lsgan_stop() {
+	              document.getElementById('emnist_image').style.opacity = "0";
+	            }
+	            alignerf_stop()
+	          </script>
+	        </td>
+                  <td style="padding:8px;width:80%;vertical-align:middle">
+                    <a href="https://github.com/ccommans/LSGAN-project">
+                      <span class="papertitle">LSGAN Project</span>
+                    </a>
+                    <br>
+                    <strong>Deep Learning, PyTorch</strong>
+                    <br>
+                    <p>
+                      Re-implemented the Least Squares Generative Adversarial Network (LSGAN) framework, exploring challenges such as vanishing gradients and mode collapse. Experimented with different parameterizations and loss functions (Hinge, L1) on datasets like EMNIST, KTH-TIPS, and Tiny ImageNet.
+                    </p>
+                  </td>
+                </tr> 
+		  
+		<tr onmouseout="power_stop()" onmouseover="power_start()">
                   <td style="padding:16px;width:20%;vertical-align:middle">
                     <div class="one">
                       <div class="two" id='power_image'>
@@ -84,37 +114,6 @@
                     <br>
                     <p>
                       Developed a sentiment analysis model to predict positive or negative text from Amazon book reviews. Data preprocessing, model optimization via GridSearch, and a Flask web app enable real-time sentiment predictions. Achieved an F1 score of 82%.
-                    </p>
-                  </td>
-                </tr>
-
-		<tr>
-                  <td style="padding:16px;width:20%;vertical-align:middle">
-                    <div class="one">
-                      <div class="two" id='ever_image'>
-                        <img src="images/ever_after.png" width="100%" alt="After effect">
-                      </div>
-                      <img src="images/ever_before.png" width="100%" alt="Before effect">
-                    </div>
-                    <script type="text/javascript">
-                      function ever_start() {
-                        document.getElementById('ever_image').style.opacity = "1";
-                      }
-                      function ever_stop() {
-                        document.getElementById('ever_image').style.opacity = "0";
-                      }
-                      ever_stop();
-                    </script>
-                  </td>
-                  <td style="padding:8px;width:80%;vertical-align:middle">
-                    <a href="https://github.com/ccommans/LSGAN-project">
-                      <span class="papertitle">LSGAN Project</span>
-                    </a>
-                    <br>
-                    <strong>Deep Learning, PyTorch</strong>
-                    <br>
-                    <p>
-                      Re-implemented the Least Squares Generative Adversarial Network (LSGAN) framework, exploring challenges such as vanishing gradients and mode collapse. Experimented with different parameterizations and loss functions (Hinge, L1) on datasets like EMNIST, KTH-TIPS, and Tiny ImageNet.
                     </p>
                   </td>
                 </tr>
