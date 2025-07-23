@@ -23,7 +23,7 @@
                 <p class="name" style="text-align: center;">
                   Colin Commans
                 </p>
-                <p>I'm a student at UC San Diego majoring in Math and Computer Science.
+                <p>I'm a graduate of UC San Diego majoring in Math and Computer Science. I am currently seeking employment.
                 </p>
                 <p>
                   At UCSD, I have embraced the opportunity to explore and refine my passion for problem solving by taking on rigorous and challenging courses. A lifelong love of puzzles has always fueled my interest in math, and I try to use coding as a tool to creatively visualize and ground the abstract concepts I have encountered in my studies. I certainly plan to keep learning math on my own after college and hope to continue solving complex problems creatively wherever my career ends up taking me. Please check out my projects below to learn more about my interests and skills, and feel free to reach out with any questions!
@@ -53,7 +53,40 @@
           <table style="width:100%;border:0px;border-spacing:0px 10px;border-collapse:separate;margin-right:auto;margin-left:auto;"><tbody>
 		  
 
-    		<tr onmouseout="lsgan_stop()" onmouseover="lsgan_start()">
+    		<tr onmouseout="cgan_stop()" onmouseover="cgan_start()">
+	        <td style="padding:16px;width:20%;vertical-align:middle">
+	          <div class="one">
+	            <div class="two" id='cgan_image'>
+	              <img src='images/cgan_after.png' width="150"></div>
+	            <img src='images/cgan_before.png' width="150">
+	          </div>
+	          <script type="text/javascript">
+	            function cgan_start() {
+	              document.getElementById('cgan_image').style.opacity = "1";
+	            }
+	
+	            function cgan_stop() {
+	              document.getElementById('cgan_image').style.opacity = "0";
+	            }
+	            cgan_stop()
+	          </script>
+	        </td>
+                  <td style="padding:8px;width:80%;vertical-align:middle">
+                    <a href="https://github.com/ccommans/cGAN-Colorizer">
+                      <span class="papertitle">Image Colorization cGAN</span>
+                    </a>
+                    <br>
+                    <strong>PyTorch, GANs</strong>
+                    <br>
+		    <a href="https://cgan-colorizer.streamlit.app">Demo</a>
+		    <br>
+                    <p>
+                      Implemented a conditional GAN to colorize images. Trained on a 10k-image subset of the COCO dataset, conditioned on class label and edge map. Generator developed with U-Net architecture and training loss a mixture of L1 and adversarial.
+                    </p>
+                  </td>
+                </tr> 
+		  
+		<tr onmouseout="lsgan_stop()" onmouseover="lsgan_start()">
 	        <td style="padding:16px;width:20%;vertical-align:middle">
 	          <div class="one">
 	            <div class="two" id='emnist_image'>
