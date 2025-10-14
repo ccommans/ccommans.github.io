@@ -53,6 +53,40 @@
           <table style="width:100%;border:0px;border-spacing:0px 10px;border-collapse:separate;margin-right:auto;margin-left:auto;"><tbody>
 		  
 
+			<tr onmouseout="gd_stop()" onmouseover="gd_start()">
+	        <td style="padding:16px;width:20%;vertical-align:middle">
+		      <div class="one">
+		        <div class="two" id='gd_image'><video  width="160" muted autoplay loop>
+		        <source src="images/gd.mov" type="video/mov">
+		        Your browser does not support the video tag.
+		        </video></div>
+		        <img src='images/climate.png' width="160">
+		      </div>
+		      <script type="text/javascript">
+		        function gd_start() {
+		          document.getElementById('gd_image').style.opacity = "1";
+		        }
+		
+		        function gd_stop() {
+		          document.getElementById('gd_image').style.opacity = "0";
+		        }
+		        climate_stop()
+		      </script>
+		    </td>
+                  <td style="padding:8px;width:80%;vertical-align:middle">
+                    <a href="https://github.com/ccommans/ClimateEmulationModel">
+                      <span class="papertitle">Gradient Descent Visualizer</span>
+                    </a>
+                    <br>
+                    <strong>HTML, Three.js</strong>
+                    <br>
+                    <p>
+                      Interactive Graident Descent visualizer for multiple loss functions and optimization algorithms.
+                    </p>
+                  </td>
+                </tr> 
+			  
+			  
     		<tr onmouseout="cgan_stop()" onmouseover="cgan_start()">
 	        <td style="padding:16px;width:20%;vertical-align:middle">
 	          <div class="one">
