@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="Colin Commans">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradient Descent Visualizer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Georgia', monospace;
+            overflow: hidden;
+            background: #0a0a0a;
+            color: #eee;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .panel {
+            position: absolute;
+            background: rgba(26, 26, 46, 0.95);
+            color: #eee;
+            padding: 16px;
+            border: 1px solid #4a9eff;
+            font-size: 11px;
+            font-family: 'Georgia', monospace;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        
+        #info-panel {
+            top: 16px;
+            left: 16px;
+            min-width: 280px;
+        }
+        
+        #math-panel {
+            top: 16px;
+            right: 16px;
+            min-width: 300px;
+        }
+        
+        #controls {
+            bottom: 16px;
+            left: 16px;
+            min-width: 280px;
+        }
+        
+        #charts {
+            bottom: 16px;
+            right: 16px;
+            width: 300px;
+            height: 200px;
+        }
+        
+        .panel h3 {
+            margin-bottom: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            border-bottom: 1px solid #4a9eff;
+            padding-bottom: 4px;
+            color: #4a9eff;
+        }
+        
+        .stat {
+            margin: 6px 0;
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Georgia', monospace;
+        }
+        
+        .stat .label {
+            color: #999;
+        }
+        
+        .stat .value {
+            font-weight: bold;
+            text-align: right;
+            color: #4af;
+        }
+        
+        .control-group {
+            margin: 10px 0;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 10px;
+            color: #999;
+        }
+        
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 6px;
+            background: rgba(40, 40, 60, 0.8);
+            border: 1px solid #4a9eff;
+            color: #eee;
+            font-size: 11px;
+            font-family: 'Georgia', monospace;
+        }
+        
+        .control-group button {
+            width: 100%;
+            padding: 8px;
+            background: #4a9eff;
+            border: 1px solid #4a9eff;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Georgia', monospace;
+            font-size: 11px;
+            transition: background 0.2s;
+        }
+        
+        .control-group button:hover {
+            background: #6bc0ff;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        .math-formula {
+            background: rgba(40, 40, 60, 0.6);
+            padding: 8px;
+            margin: 8px 0;
+            border-left: 2px solid #4a9eff;
+            font-size: 10px;
+            color: #ccc;
+        }
+        
+        #chart-canvas {
+            width: 100%;
+            height: 160px;
+            border: 1px solid #4a9eff;
+            background: rgba(20, 20, 30, 0.9);
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26, 26, 46, 0.95);
+            color: #eee;
+            padding: 10px 20px;
+            border-radius: 4px;
+            border: 1px solid #4a9eff;
+            font-size: 11px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="panel" id="info-panel">
+        <h3>STATE VECTOR</h3>
+        <div class="stat">
+            <span class="label">x₁</span>
+            <span class="value" id="pos-x">0.000</span>
+        </div>
+        <div class="stat">
+            <span class="label">x₂</span>
+            <span class="value" id="pos-y">0.000</span>
+        </div>
+        <div class="stat">
+            <span class="label">f(x)</span>
+            <span class="value" id="loss-value">0.000</span>
+        </div>
+        <div class="stat">
+            <span class="label">||∇f||</span>
+            <span class="value" id="grad-magnitude">0.000</span>
+        </div>
+        <div class="stat">
+            <span class="label">∂f/∂x₁</span>
+            <span class="value" id="grad-x">0.000</span>
+        </div>
+        <div class="stat">
+            <span class="label">∂f/∂x₂</span>
+            <span class="value" id="grad-y">0.000</span>
+        </div>
+        <div class="stat">
+            <span class="label">iteration</span>
+            <span class="value" id="step-count">0</span>
+        </div>
+        <div class="stat">
+            <span class="label">α (effective)</span>
+            <span class="value" id="effective-lr">0.000</span>
+        </div>
+    </div>
+    
+    <div class="panel" id="math-panel">
+        <h3>HESSIAN ANALYSIS</h3>
+        <div class="stat">
+            <span class="label">λ₁ (max)</span>
+            <span class="value" id="eigen-max">-</span>
+        </div>
+        <div class="stat">
+            <span class="label">λ₂ (min)</span>
+            <span class="value" id="eigen-min">-</span>
+        </div>
+        <div class="stat">
+            <span class="label">κ (condition)</span>
+            <span class="value" id="condition-number">-</span>
+        </div>
+        <div class="stat">
+            <span class="label">det(H)</span>
+            <span class="value" id="hessian-det">-</span>
+        </div>
+        <div class="math-formula" id="loss-formula">
+            f(x₁,x₂) = x₁² + x₂²
+        </div>
+        <h3 style="margin-top: 12px;">OPTIMIZER INFO</h3>
+        <div class="stat">
+            <span class="label">algorithm</span>
+            <span class="value" id="opt-name">SGD</span>
+        </div>
+        <div class="stat">
+            <span class="label">learning rate</span>
+            <span class="value" id="opt-lr">0.010</span>
+        </div>
+        <div class="stat">
+            <span class="label">momentum (β₁)</span>
+            <span class="value" id="opt-beta1">-</span>
+        </div>
+        <div class="stat">
+            <span class="label">RMS decay (β₂)</span>
+            <span class="value" id="opt-beta2">-</span>
+        </div>
+    </div>
+    
+    <div class="panel" id="controls">
+        <h3>CONFIGURATION</h3>
+        
+        <div class="control-group">
+            <label>OBJECTIVE FUNCTION</label>
+            <select id="loss-function">
+                <option value="sphere">Sphere</option>
+                <option value="rosenbrock">Rosenbrock</option>
+                <option value="booth">Booth</option>
+                <option value="matyas">Matyas</option>
+                <option value="himmelblau">Himmelblau</option>
+                <option value="sixhump">Six-Hump Camel</option>
+                <option value="rastrigin">Rastrigin</option>
+                <option value="ackley">Ackley</option>
+                <option value="holder">Holder Table</option>
+                <option value="griewank">Griewank</option>
+                <option value="mccormick">McCormick</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>OPTIMIZER</label>
+            <select id="optimizer-type">
+                <option value="sgd">Stochastic Gradient Descent</option>
+                <option value="momentum">Momentum (β=0.9)</option>
+                <option value="nesterov">Nesterov Momentum (β=0.9)</option>
+                <option value="adagrad">AdaGrad</option>
+                <option value="rmsprop">RMSprop</option>
+                <option value="adam">Adam (β₁=0.9, β₂=0.999)</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>LEARNING RATE: <span id="lr-value">0.010</span></label>
+            <input type="range" id="learning-rate" min="0.001" max="0.1" step="0.0005" value="0.01">
+        </div>
+        
+        <div class="control-group">
+            <button id="reset-btn">RESET</button>
+        </div>
+    </div>
+    
+    <div class="panel" id="charts">
+        <h3>CONVERGENCE</h3>
+        <canvas id="chart-canvas"></canvas>
+    </div>
+    
+    <div id="instructions">
+        Click surface to start | Drag to rotate | Scroll to zoom
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <script>
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0a);
+        scene.fog = new THREE.Fog(0x0a0a0a, 30, 80);
+        
+        const camera = new THREE.PerspectiveCamera(
+            50,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(12, 10, 12);
+        camera.lookAt(0, 0, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        
+        const directionalLight1 = new THREE.DirectionalLight(0x6bc0ff, 0.6);
+        directionalLight1.position.set(10, 20, 10);
+        scene.add(directionalLight1);
+        
+        const directionalLight2 = new THREE.DirectionalLight(0xff6b9d, 0.3);
+        directionalLight2.position.set(-10, 10, -10);
+        scene.add(directionalLight2);
+        
+        // Loss functions with proper bounds from SFU website
+        const lossFunctions = {
+            sphere: {
+                fn: (x, y) => x * x + y * y,
+                formula: "f(x) = x_1^2 + x_2^2",
+                bounds: [-5, 5],
+                optimum: [0, 0],
+                scale: 0.15
+            },
+            rosenbrock: {
+                fn: (x, y) => Math.pow(1 - x, 2) + 2 * Math.pow(y - x * x, 2),
+                formula: "f(x) = (1-x_1)^2 + 2(x_2-x_1^2)^2",
+                bounds: [-2, 2],
+                optimum: [1, 1],
+                scale: 0.15
+            },
+            booth: {
+                fn: (x, y) => Math.pow(x + 2*y - 7, 2) + Math.pow(2*x + y - 5, 2),
+                formula: "f(x) = (x_1+2x_2-7)^2 + (2x_1+x_2-5)^2",
+                bounds: [-1, 4],
+                optimum: [1, 3],
+                scale: 0.15
+            },
+            matyas: {
+                fn: (x, y) => 0.26 * (x*x + y*y) - 0.48 * x * y,
+                formula: "f(x) = 0.26(x₁²+x₂²) - 0.48x₁x₂",
+                bounds: [-5, 5],
+                optimum: [0, 0],
+                scale: 0.15
+            },
+            himmelblau: {
+                fn: (x, y) => Math.pow(x*x + y - 11, 2) + Math.pow(x + y*y - 7, 2),
+                formula: "f(x) = (x₁²+x₂-11)² + (x₁+x₂²-7)²",
+                bounds: [-4, 4],
+                optimum: [3, 2],
+                scale: 0.15
+            },
+            sixhump: {
+                fn: (x, y) => (4 - 2.1*x*x + Math.pow(x, 4)/3)*x*x + x*y + (-4 + 4*y*y)*y*y,
+                formula: "f(x) = (4-2.1x₁²+ \\tfrac{1}{3}x_1^4)x₁² + x₁x₂ + (-4+4x₂²)x₂²",
+                bounds: [-2, 2],
+                optimum: [0.0898, -0.7126],
+                scale: 0.15
+            },
+            rastrigin: {
+                fn: (x, y) => 10 + x*x + y*y - 10*(Math.cos(2*Math.PI*x) + Math.cos(2*Math.PI*y)),
+                formula: "f(x) = 10 + x_1^2 + x_2^2 - 10(\\cos(2πx_1) + \\cos(2πx_2))",
+                bounds: [-5.12, 5.12],
+                optimum: [0, 0],
+                scale: 0.15
+            },
+            ackley: {
+                fn: (x, y) => {
+                    const a = 20, b = 0.2, c = 2*Math.PI;
+                    return -a * Math.exp(-b * Math.sqrt(0.5 * (x*x + y*y))) - 
+                           Math.exp(0.5 * (Math.cos(c*x) + Math.cos(c*y))) + a + Math.E;
+                },
+                formula: "f(x) = -20 \\exp(-0.2\\sqrt{0.5(x_1^2+x_2^2)}) - \\exp(0.5(\\cos(2πx_1)+\\cos(2πx_2))) + 20 + e",
+                bounds: [-5, 5],
+                optimum: [0, 0],
+                scale: 0.15
+            },
+            holder: {
+                fn: (x, y) => {
+                    return -Math.abs(Math.sin(x) * Math.cos(y) * Math.exp(Math.abs(1 - Math.sqrt(x*x + y*y)/Math.PI)));
+                },
+                formula: "f(x) = -|\\sin(x_1) \\cos(x_2) \\exp(|1 - \\tfrac{1}{\\pi}\\sqrt{x_1^2 + x_2^2}|)|",
+                bounds: [-10, 10],
+                optimum: [8.05502, 9.66459],
+                scale: 0.15
+            },
+            griewank: {
+                fn: (x,y) => {
+                     return (x*x + y*y) / 4000 + 5 * Math.cos(x) * Math.cos(y / Math.sqrt(2)) + 1
+                },
+                formula: "f(x) = 1 + \\tfrac{1}{4000}(x_1^2+x_2^2) - \\cos(x_1)\\cos(\\tfrac{1}{\\sqrt{2}}x_2)",
+                bounds: [-5,5],
+                optimum: [0,0],
+                scale: 0.15
+            },
+            mccormick: {
+                fn: (x,y) => {
+                    return Math.sin(x + y) + Math.pow(x - y, 2) - 1.5*x + 2.5*y + 1
+                },
+                formula: "f(x) = \\sin(x_1 + x_2) + (x_1 - x_2)^2 - 1.5x_1 + 2.5x_2 + 1",
+                bounds: [-5,5],
+                optimum: [-0.54719,-1.54719],
+                scale: 0.15
+            }
+        };
+        
+        let currentLossFunction = 'sphere';
+        
+        // Compute numerical gradient
+        function computeGradient(func, x, y, epsilon = 1e-5) {
+            const f = lossFunctions[func].fn;
+            const dx = (f(x + epsilon, y) - f(x - epsilon, y)) / (2 * epsilon);
+            const dy = (f(x, y + epsilon) - f(x, y - epsilon)) / (2 * epsilon);
+            return { dx, dy };
+        }
+        
+        // Compute Hessian matrix
+        function computeHessian(func, x, y, epsilon = 1e-4) {
+            const f = lossFunctions[func].fn;
+            const fxx = (f(x + epsilon, y) - 2*f(x, y) + f(x - epsilon, y)) / (epsilon * epsilon);
+            const fyy = (f(x, y + epsilon) - 2*f(x, y) + f(x, y - epsilon)) / (epsilon * epsilon);
+            const fxy = (f(x + epsilon, y + epsilon) - f(x + epsilon, y - epsilon) - 
+                        f(x - epsilon, y + epsilon) + f(x - epsilon, y - epsilon)) / (4 * epsilon * epsilon);
+            return { fxx, fyy, fxy };
+        }
+        
+        // Compute eigenvalues
+        function computeEigenvalues(hessian) {
+            const a = hessian.fxx;
+            const b = hessian.fxy;
+            const d = hessian.fyy;
+            const trace = a + d;
+            const det = a * d - b * b;
+            const discriminant = trace * trace - 4 * det;
+            if (discriminant < 0) return { lambda1: null, lambda2: null };
+            const sqrtDisc = Math.sqrt(discriminant);
+            return {
+                lambda1: (trace + sqrtDisc) / 2,
+                lambda2: (trace - sqrtDisc) / 2
+            };
+        }
+        
+        // Create surface with height-based coloring
+        function createSurface(lossType) {
+            const config = lossFunctions[lossType];
+            const [minBound, maxBound] = config.bounds;
+            const range = maxBound - minBound;
+            const resolution = 100;
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            const colors = [];
+            const indices = [];
+            
+            const func = config.fn;
+            const scale = config.scale;
+            let minZ = Infinity, maxZ = -Infinity;
+            
+            for (let i = 0; i <= resolution; i++) {
+                for (let j = 0; j <= resolution; j++) {
+                    const x = minBound + (i / resolution) * range;
+                    const y = minBound + (j / resolution) * range;
+                    const z = func(x, y);
+                    const clampedZ = Math.max(-1000, Math.min(z, 1000)) * scale;
+                    vertices.push(x, clampedZ, y);
+                    minZ = Math.min(minZ, clampedZ);
+                    maxZ = Math.max(maxZ, clampedZ);
+                }
+            }
+            
+            // Color based on height
+            for (let i = 0; i < vertices.length; i += 3) {
+                const z = vertices[i + 1];
+                const t = (z - minZ) / (maxZ - minZ + 1e-10);
+                const color = new THREE.Color();
+                // Blue to cyan to yellow to red gradient
+                if (t < 0.33) {
+                    color.setHSL(0.6, 0.8, 0.3 + t * 0.6);
+                } else if (t < 0.66) {
+                    color.setHSL(0.5 - (t - 0.33) * 0.8, 0.8, 0.5);
+                } else {
+                    color.setHSL(0.1, 0.9, 0.4 + (t - 0.66) * 0.3);
+                }
+                colors.push(color.r, color.g, color.b);
+            }
+            
+            for (let i = 0; i < resolution; i++) {
+                for (let j = 0; j < resolution; j++) {
+                    const a = i * (resolution + 1) + j;
+                    const b = a + resolution + 1;
+                    indices.push(a, b, a + 1);
+                    indices.push(b, b + 1, a + 1);
+                }
+            }
+            
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.setIndex(indices);
+            geometry.computeVertexNormals();
+            
+            const material = new THREE.MeshPhongMaterial({
+                vertexColors: true,
+                shininess: 60,
+                side: THREE.DoubleSide,
+                flatShading: false
+            });
+            
+            const mesh = new THREE.Mesh(geometry, material);
+            
+            // Wireframe overlay
+            const edges = new THREE.EdgesGeometry(geometry, 30);
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x333355, transparent: true, opacity: 0.2 });
+            const wireframe = new THREE.LineSegments(edges, lineMat);
+            mesh.add(wireframe);
+            
+            return mesh;
+        }
+        
+        let surfaceMesh = createSurface(currentLossFunction);
+        scene.add(surfaceMesh);
+        
+        // Grid
+        const gridHelper = new THREE.GridHelper(20, 20, 0x4a9eff, 0x2a3050);
+        gridHelper.position.y = -2;
+        scene.add(gridHelper);
+        
+        // Optimizers
+        class SGD {
+            constructor(learningRate) {
+                this.lr = learningRate;
+                this.position = { x: 0, y: 0 };
+                this.path = [];
+                this.stepCount = 0;
+                this.name = "SGD";
+            }
+            step(lossType) {
+                const grad = computeGradient(lossType, this.position.x, this.position.y);
+                this.position.x -= this.lr * grad.dx;
+                this.position.y -= this.lr * grad.dy;
+                this.path.push({ x: this.position.x, y: this.position.y });
+                this.stepCount++;
+                return grad;
+            }
+            getParams() { return { beta1: null, beta2: null }; }
+        }
+        
+        class MomentumOptimizer {
+            constructor(learningRate, beta = 0.9) {
+                this.lr = learningRate;
+                this.beta = beta;
+                this.position = { x: 0, y: 0 };
+                this.velocity = { x: 0, y: 0 };
+                this.path = [];
+                this.stepCount = 0;
+                this.name = "Momentum";
+            }
+            step(lossType) {
+                const grad = computeGradient(lossType, this.position.x, this.position.y);
+                this.velocity.x = this.beta * this.velocity.x + grad.dx;
+                this.velocity.y = this.beta * this.velocity.y + grad.dy;
+                this.position.x -= this.lr * this.velocity.x;
+                this.position.y -= this.lr * this.velocity.y;
+                this.path.push({ x: this.position.x, y: this.position.y });
+                this.stepCount++;
+                return grad;
+            }
+            getParams() { return { beta1: this.beta, beta2: null }; }
+            reset() { this.velocity = { x: 0, y: 0 }; }
+        }
+        
+        class NesterovOptimizer {
+            constructor(learningRate, beta = 0.9) {
+                this.lr = learningRate;
+                this.beta = beta;
+                this.position = { x: 0, y: 0 };
+                this.velocity = { x: 0, y: 0 };
+                this.path = [];
+                this.stepCount = 0;
+                this.name = "Nesterov";
+            }
+            step(lossType) {
+                const lookaheadX = this.position.x - this.beta * this.velocity.x;
+                const lookaheadY = this.position.y - this.beta * this.velocity.y;
+                const grad = computeGradient(lossType, lookaheadX, lookaheadY);
+                this.velocity.x = this.beta * this.velocity.x + this.lr * grad.dx;
+                this.velocity.y = this.beta * this.velocity.y + this.lr * grad.dy;
+                this.position.x -= this.velocity.x;
+                this.position.y -= this.velocity.y;
+                this.path.push({ x: this.position.x, y: this.position.y });
+                this.stepCount++;
+                return grad;
+            }
+            getParams() { return { beta1: this.beta, beta2: null }; }
+            reset() { this.velocity = { x: 0, y: 0 }; }
+        }
+        
+        class AdaGrad {
+            constructor(learningRate, epsilon = 1e-8) {
+                this.lr = learningRate;
+                this.epsilon = epsilon;
+                this.position = { x: 0, y: 0 };
+                this.accum = { x: 0, y: 0 };
+                this.path = [];
+                this.stepCount = 0;
+                this.name = "AdaGrad";
+            }
+            step(lossType) {
+                const grad = computeGradient(lossType, this.position.x, this.position.y);
+                this.accum.x += grad.dx * grad.dx;
+                this.accum.y += grad.dy * grad.dy;
+                this.position.x -= this.lr * grad.dx / (Math.sqrt(this.accum.x) + this.epsilon);
+                this.position.y -= this.lr * grad.dy / (Math.sqrt(this.accum.y) + this.epsilon);
+                this.path.push({ x: this.position.x, y: this.position.y });
+                this.stepCount++;
+                return grad;
+            }
+            getParams() { return { beta1: null, beta2: null }; }
+            reset() { this.accum = { x: 0, y: 0 }; }
+        }
+        
+        class RMSprop {
+            constructor(learningRate, beta = 0.9, epsilon = 1e-8) {
+                this.lr = learningRate;
+                this.beta = beta;
+                this.epsilon = epsilon;
+                this.position = { x: 0, y: 0 };
+                this.v = { x: 0, y: 0 };
+                this.path = [];
+                this.stepCount = 0;
+                this.name = "RMSprop";
+            }
+            step(lossType) {
+                const grad = computeGradient(lossType, this.position.x, this.position.y);
+                this.v.x = this.beta * this.v.x + (1 - this.beta) * grad.dx * grad.dx;
+                this.v.y = this.beta * this.v.y + (1 - this.beta) * grad.dy * grad.dy;
+                this.position.x -= this.lr * grad.dx / (Math.sqrt(this.v.x) + this.epsilon);
+                this.position.y -= this.lr * grad.dy / (Math.sqrt(this.v.y) + this.epsilon);
+                this.path.push({ x: this.position.x, y: this.position.y });
+                this.stepCount++;
+                return grad;
+            }
+            getParams() { return { beta1: null, beta2: this.beta }; }
+            reset() { this.v = { x: 0, y: 0 }; }
+        }
+        
+        class Adam {
+            constructor(learningRate, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8) {
+                this.lr = learningRate;
+                this.beta1 = beta1;
+                this.beta2 = beta2;
+                this.epsilon = epsilon;
+                this.position = { x: 0, y: 0 };
+                this.m = { x: 0, y: 0 };
+                this.v = { x: 0, y: 0 };
+                this.path = [];
+                this.stepCount = 0;
+                this.name = "Adam";
+            }
+            step(lossType) {
+                const grad = computeGradient(lossType, this.position.x, this.position.y);
+                this.m.x = this.beta1 * this.m.x + (1 - this.beta1) * grad.dx;
+                this.m.y = this.beta1 * this.m.y + (1 - this.beta1) * grad.dy;
+                this.v.x = this.beta2 * this.v.x + (1 - this.beta2) * grad.dx * grad.dx;
+                this.v.y = this.beta2 * this.v.y + (1 - this.beta2) * grad.dy * grad.dy;
+                const mHatX = this.m.x / (1 - Math.pow(this.beta1, this.stepCount + 1));
+                const mHatY = this.m.y / (1 - Math.pow(this.beta1, this.stepCount + 1));
+                const vHatX = this.v.x / (1 - Math.pow(this.beta2, this.stepCount + 1));
+                const vHatY = this.v.y / (1 - Math.pow(this.beta2, this.stepCount + 1));
+                this.position.x -= this.lr * mHatX / (Math.sqrt(vHatX) + this.epsilon);
+                this.position.y -= this.lr * mHatY / (Math.sqrt(vHatY) + this.epsilon);
+                this.path.push({ x: this.position.x, y: this.position.y });
+                this.stepCount++;
+                return grad;
+            }
+            getParams() { return { beta1: this.beta1, beta2: this.beta2 }; }
+            reset() { this.m = { x: 0, y: 0 }; this.v = { x: 0, y: 0 }; }
+        }
+        
+        let optimizer = new SGD(0.01);
+        let optimizing = false;
+        let lossHistory = [];
+        let gradHistory = [];
+        
+        // Particle
+        const particleGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+        const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xff6b9d });
+        const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+        scene.add(particle);
+        
+        // Gradient arrow
+        const arrowHelper = new THREE.ArrowHelper(
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+            1,
+            0xffff00,
+            0.4,
+            0.25
+        );
+        scene.add(arrowHelper);
+        
+        // Path
+        let pathLine = null;
+        
+        function updatePathVisualization() {
+            if (pathLine) scene.remove(pathLine);
+            if (optimizer.path.length > 1) {
+                const config = lossFunctions[currentLossFunction];
+                const points = optimizer.path.map(p => {
+                    const z = config.fn(p.x, p.y);
+                    return new THREE.Vector3(p.x, Math.max(-1000, Math.min(z, 1000)) * config.scale + 0.1, p.y);
+                });
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 3 });
+                pathLine = new THREE.Line(geometry, material);
+                scene.add(pathLine);
+            }
+        }
+        
+        // Mouse interaction
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        
+        renderer.domElement.addEventListener('mousedown', (event) => {
+            isDragging = false;
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        });
+        
+        renderer.domElement.addEventListener('mousemove', (event) => {
+            const deltaX = Math.abs(event.clientX - previousMousePosition.x);
+            const deltaY = Math.abs(event.clientY - previousMousePosition.y);
+            if (deltaX > 5 || deltaY > 5) isDragging = true;
+        });
+        
+        renderer.domElement.addEventListener('click', (event) => {
+            if (isDragging) return;
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(surfaceMesh);
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                optimizer.position = { x: point.x, y: point.z };
+                optimizer.path = [{ x: point.x, y: point.z }];
+                optimizer.stepCount = 0;
+                if (optimizer.reset) optimizer.reset();
+                optimizing = true;
+                lossHistory = [];
+                gradHistory = [];
+                updatePathVisualization();
+            }
+        });
+        
+        // Camera orbit
+        let cameraAngle = Math.PI / 4;
+        let cameraPitch = Math.PI / 4;
+        let cameraRadius = 16;
+        renderer.domElement.addEventListener('mousemove', (event) => {
+            if (event.buttons === 1 && isDragging) {
+                cameraAngle += event.movementX * 0.01;
+                cameraPitch -= event.movementY * 0.01;
+                camera.position.x = cameraRadius * Math.sin(cameraPitch) * Math.sin(cameraAngle);
+                camera.position.y = cameraRadius * Math.cos(cameraPitch);
+                camera.position.z = cameraRadius * Math.sin(cameraPitch) * Math.cos(cameraAngle);
+                camera.lookAt(0, 0, 0);
+            }
+        });
+        
+        // Zoom with mouse wheel
+        renderer.domElement.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            cameraRadius += event.deltaY * 0.01;
+            cameraRadius = Math.max(5, Math.min(cameraRadius, 50));
+            camera.position.x = cameraRadius * Math.sin(cameraPitch) * Math.sin(cameraAngle);
+            camera.position.z = cameraRadius * Math.sin(cameraPitch) * Math.cos(cameraAngle);
+            camera.position.y = cameraRadius * 0.6;
+            camera.lookAt(0, 0, 0);
+        });
+        
+        // UI controls
+        document.getElementById('loss-function').addEventListener('change', (e) => {
+            currentLossFunction = e.target.value;
+            scene.remove(surfaceMesh);
+            surfaceMesh = createSurface(currentLossFunction);
+            scene.add(surfaceMesh);
+            renderFormula(document.getElementById('loss-formula'), lossFunctions[currentLossFunction].formula);
+            optimizing = false;
+            lossHistory = [];
+            gradHistory = [];
+            if (pathLine) scene.remove(pathLine);
+        });
+        
+        document.getElementById('optimizer-type').addEventListener('change', (e) => {
+            const lr = parseFloat(document.getElementById('learning-rate').value);
+            switch(e.target.value) {
+                case 'sgd': optimizer = new SGD(lr); break;
+                case 'momentum': optimizer = new MomentumOptimizer(lr); break;
+                case 'nesterov': optimizer = new NesterovOptimizer(lr); break;
+                case 'adagrad': optimizer = new AdaGrad(lr); break;
+                case 'rmsprop': optimizer = new RMSprop(lr); break;
+                case 'adam': optimizer = new Adam(lr); break;
+            }
+            optimizing = false;
+            lossHistory = [];
+            gradHistory = [];
+            if (pathLine) scene.remove(pathLine);
+            updateOptimizerInfo();
+        });
+        
+        document.getElementById('learning-rate').addEventListener('input', (e) => {
+            const lr = parseFloat(e.target.value);
+            document.getElementById('lr-value').textContent = lr.toFixed(3);
+            optimizer.lr = lr;
+        });
+        
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            optimizing = false;
+            optimizer.position = { x: 0, y: 0 };
+            optimizer.path = [];
+            optimizer.stepCount = 0;
+            lossHistory = [];
+            gradHistory = [];
+            if (optimizer.reset) optimizer.reset();
+            if (pathLine) {
+                scene.remove(pathLine);
+                pathLine = null;
+            }
+        });
+        
+        // Render LaTeX formula
+        function renderFormula(formulaElement, latex) {
+            try {
+                katex.render(latex, formulaElement, {
+                    throwOnError: false,
+                    displayMode: true
+                });
+            } catch (e) {
+                formulaElement.textContent = latex;
+            }
+        }
+
+        // Update displays
+        function updateInfoPanel(grad) {
+            document.getElementById('pos-x').textContent = optimizer.position.x.toFixed(3);
+            document.getElementById('pos-y').textContent = optimizer.position.y.toFixed(3);
+            const loss = lossFunctions[currentLossFunction].fn(optimizer.position.x, optimizer.position.y);
+            document.getElementById('loss-value').textContent = loss.toFixed(3);
+            if (grad) {
+                const magnitude = Math.sqrt(grad.dx * grad.dx + grad.dy * grad.dy);
+                document.getElementById('grad-magnitude').textContent = magnitude.toFixed(4);
+                document.getElementById('grad-x').textContent = grad.dx.toFixed(4);
+                document.getElementById('grad-y').textContent = grad.dy.toFixed(4);
+                
+                let effectiveLR = optimizer.lr;
+                if (optimizer.name === "AdaGrad" && optimizer.accum.x > 0) {
+                    effectiveLR = optimizer.lr / Math.sqrt(optimizer.accum.x);
+                } else if (optimizer.name === "RMSprop" && optimizer.v.x > 0) {
+                    effectiveLR = optimizer.lr / Math.sqrt(optimizer.v.x);
+                } else if (optimizer.name === "Adam" && optimizer.v.x > 0) {
+                    const vHatX = optimizer.v.x / (1 - Math.pow(optimizer.beta2, optimizer.stepCount));
+                    effectiveLR = optimizer.lr / Math.sqrt(vHatX);
+                }
+                document.getElementById('effective-lr').textContent = effectiveLR.toFixed(4);
+            }
+            document.getElementById('step-count').textContent = optimizer.stepCount;
+        }
+        
+        function updateHessianInfo() {
+            if (optimizer.stepCount === 0) return;
+            const hessian = computeHessian(currentLossFunction, optimizer.position.x, optimizer.position.y);
+            const eigenvalues = computeEigenvalues(hessian);
+            
+            if (eigenvalues.lambda1 !== null) {
+                document.getElementById('eigen-max').textContent = eigenvalues.lambda1.toFixed(3);
+                document.getElementById('eigen-min').textContent = eigenvalues.lambda2.toFixed(3);
+                const condition = Math.abs(eigenvalues.lambda1 / (eigenvalues.lambda2 || 1e-10));
+                document.getElementById('condition-number').textContent = condition.toFixed(2);
+            }
+            
+            const det = hessian.fxx * hessian.fyy - hessian.fxy * hessian.fxy;
+            document.getElementById('hessian-det').textContent = det.toFixed(3);
+        }
+
+        function updateOptimizerInfo() {
+            document.getElementById('opt-name').textContent = optimizer.name;
+            document.getElementById('opt-lr').textContent = optimizer.lr.toFixed(3);
+            const params = optimizer.getParams();
+            document.getElementById('opt-beta1').textContent = params.beta1 !== null ? params.beta1.toFixed(3) : '-';
+            document.getElementById('opt-beta2').textContent = params.beta2 !== null ? params.beta2.toFixed(3) : '-';
+        }
+        
+        // Chart
+        function drawChart() {
+            const canvas = document.getElementById('chart-canvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.clientWidth;
+            const height = canvas.height = canvas.clientHeight;
+            
+            ctx.fillStyle = 'rgba(20, 20, 30, 0.9)';
+            ctx.fillRect(0, 0, width, height);
+            
+            if (lossHistory.length < 2) return;
+            
+            const maxLoss = Math.max(...lossHistory, 1);
+            const maxGrad = Math.max(...gradHistory, 1);
+            
+            ctx.strokeStyle = '#4af';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            lossHistory.forEach((loss, i) => {
+                const x = (i / lossHistory.length) * width;
+                const y = height - (loss / maxLoss) * (height - 20);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+            
+            ctx.strokeStyle = '#ff6b9d';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            gradHistory.forEach((grad, i) => {
+                const x = (i / gradHistory.length) * width;
+                const y = height - (grad / maxGrad) * (height - 20);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+            
+            ctx.fillStyle = '#4af';
+            ctx.font = '15px Georgia';
+            ctx.fillText('f(x)', 5, 15);
+            ctx.fillStyle = '#ff6b9d';
+            ctx.fillText('||∇f||', 45, 15);
+        }
+        
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (optimizing && optimizer.stepCount < 1000) {
+                const grad = optimizer.step(currentLossFunction);
+                const magnitude = Math.sqrt(grad.dx * grad.dx + grad.dy * grad.dy);
+                
+                lossHistory.push(lossFunctions[currentLossFunction].fn(optimizer.position.x, optimizer.position.y));
+                gradHistory.push(magnitude);
+                
+                if (magnitude < 0.0001) optimizing = false;
+                
+                updatePathVisualization();
+                updateInfoPanel(grad);
+                updateHessianInfo();
+                drawChart();
+                
+                const arrowLength = Math.min(magnitude * 2, 3);
+                if (magnitude > 0.001) {
+                    const dir = new THREE.Vector3(-grad.dx, 0, -grad.dy).normalize();
+                    const config = lossFunctions[currentLossFunction];
+                    const z = config.fn(optimizer.position.x, optimizer.position.y);
+                    arrowHelper.position.set(optimizer.position.x, Math.max(-1000, Math.min(z, 1000)) * config.scale + 0.3, optimizer.position.y);
+                    arrowHelper.setDirection(dir);
+                    arrowHelper.setLength(arrowLength, 0.4, 0.25);
+                }
+            }
+            
+            const config = lossFunctions[currentLossFunction];
+            const z = config.fn(optimizer.position.x, optimizer.position.y);
+            particle.position.set(optimizer.position.x, Math.max(-1000, Math.min(z, 1000)) * config.scale + 0.4, optimizer.position.y);
+            
+            renderer.render(scene, camera);
+        }
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        renderFormula(document.getElementById('loss-formula'), lossFunctions[currentLossFunction].formula);
+        updateOptimizerInfo();
+        animate();
+    </script>
+</body>
+</html>
