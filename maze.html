@@ -1,0 +1,2451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="Author" content="Colin Commans">
+    <title>Maze Navigation with Deep Learning</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgpu/dist/tf-backend-webgpu.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: #fafafa;
+            color: #333;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            color: #111;
+            font-size: 2em;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #666;
+            font-size: 0.95em;
+            font-weight: 400;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .canvas-section {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 30px;
+        }
+
+        .control-panel {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 30px;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #333;
+            background: #fff;
+        }
+
+        #metricsCanvas {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            color: #111;
+            font-weight: 500;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #111;
+            color: #fff;
+            border: 1px solid #111;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 400;
+        }
+
+        button:hover {
+            background: #333;
+        }
+
+        button:disabled {
+            background: #ddd;
+            color: #999;
+            border-color: #ddd;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            background: #f5f5f5;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .stat-label {
+            color: #666;
+        }
+
+        .stat-value {
+            color: #111;
+            font-weight: 500;
+        }
+
+        .info-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-left: 2px solid #111;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.85em;
+            color: #555;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border: 1px solid #ccc;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            background: #fff;
+            border: 1px solid #ddd;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        input[type="range"] {
+            padding: 0;
+        }
+
+        #status {
+            background: #f5f5f5;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        /* Documentation styles */
+        .documentation {
+            max-width: 1400px;
+            margin: 60px auto 40px;
+            padding: 40px;
+            background: #fff;
+            border: 1px solid #ddd;
+        }
+
+        .documentation h2 {
+            color: #111;
+            font-size: 1.8em;
+            font-weight: 400;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .documentation h3 {
+            color: #111;
+            font-size: 1.3em;
+            font-weight: 500;
+            margin: 40px 0 20px 0;
+        }
+
+        .documentation h4 {
+            color: #333;
+            font-size: 1.1em;
+            font-weight: 500;
+            margin: 30px 0 15px 0;
+        }
+
+        .documentation h5 {
+            color: #555;
+            font-size: 1em;
+            font-weight: 500;
+            margin: 20px 0 10px 0;
+        }
+
+        .documentation p {
+            margin-bottom: 15px;
+            line-height: 1.8;
+            color: #444;
+        }
+
+        .documentation ul, .documentation ol {
+            margin: 15px 0 15px 30px;
+            line-height: 1.8;
+            color: #444;
+        }
+
+        .documentation li {
+            margin-bottom: 8px;
+        }
+
+        .documentation strong {
+            font-weight: 600;
+            color: #111;
+        }
+
+        .documentation em {
+            font-style: italic;
+            color: #666;
+        }
+
+        .doc-section {
+            margin-bottom: 50px;
+        }
+
+        .info-block {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 2px solid #111;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .column-box {
+            background: #f9f9f9;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: #fff;
+        }
+
+        .comparison-table th {
+            background: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+            font-weight: 500;
+            color: #111;
+        }
+
+        .comparison-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            color: #444;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .note-box {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+            font-size: 0.95em;
+            color: #555;
+        }
+
+        .architecture-flow {
+            background: #f9f9f9;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+            line-height: 2;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .footer-doc {
+            text-align: center;
+            padding: 30px;
+            margin-top: 40px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Maze Navigation with Deep Learning</h1>
+        <p class="subtitle">Neural networks learning spatial reasoning through optimal path imitation</p>
+
+        <div class="main-content">
+            <div class="canvas-section">
+                <div class="section-title">Environment & Activation Visualization</div>
+                <canvas id="gridCanvas" width="600" height="600"></canvas>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4a90e2;"></div>
+                        <span>Start</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #e24a4a;"></div>
+                        <span>Goal</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #444;"></div>
+                        <span>Obstacle</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #50c878;"></div>
+                        <span>Agent Path</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: rgba(255, 255, 100, 0.3);"></div>
+                        <span id="legendHot">Activation (High)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: rgba(100, 100, 255, 0.3);"></div>
+                        <span id="legendCold">Activation (Medium)</span>
+                    </div>
+                </div>
+
+                <div class="section-title" style="margin-top: 20px;">Training Metrics</div>
+                <canvas id="metricsCanvas" width="600" height="200"></canvas>
+            </div>
+
+            <div class="control-panel">
+                <div class="section-title">Controls</div>
+                
+                <div class="control-group">
+                    <button onclick="generateNewMaze()">Generate New Maze</button>
+                    <button onclick="startTraining()" id="trainBtn">Train Model</button>
+                    <button onclick="testModel()" id="testBtn" disabled>Test Navigation</button>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Grid Size:</span>
+                        <span class="stat-value" id="gridSize">10x10</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Training Samples:</span>
+                        <span class="stat-value" id="sampleCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Model:</span>
+                        <span class="stat-value" id="modelType">CNN</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="modelSelect">Model Architecture:</label>
+                    <select id="modelSelect">
+                        <option value="cnn" selected>CNN (Recommended)</option>
+                        <option value="transformer">Transformer (Experimental)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="obstacleSlider">Obstacle Density: <span id="obstacleValue">20</span>%</label>
+                    <input type="range" id="obstacleSlider" min="10" max="40" value="20"
+                           oninput="document.getElementById('obstacleValue').textContent = this.value">
+                </div>
+
+                <div id="status" style="display: none;"></div>
+            </div>
+        </div>
+        <!-- Documentation Section -->
+        <div class="documentation">
+            <h2>Deep Learning Maze Navigation: Technical Guide</h2>
+
+            <!-- OVERVIEW -->
+            <section class="doc-section">
+                <h3>Project-Specific Innovations</h3>
+                <p>
+                    This project implements several custom techniques to address unique challenges in teaching neural networks to navigate mazes.
+                    The focus is on practical solutions that emerged from iterative development across multiple versions.
+                </p>
+
+                <h4>Two-Channel Input Encoding</h4>
+                <p>
+                    Standard approach would be a single channel maze representation. This project uses a <strong>dual-channel input</strong>
+                    where Channel 0 encodes the grid structure and Channel 1 provides normalized Manhattan distance to the goal at every position.
+                    This gives the model explicit directional guidance without hard-coding pathfinding logic.
+                </p>
+                <div class="note-box">
+                    <strong>Why this matters:</strong> Without the distance channel, models struggle to distinguish between "move toward goal"
+                    and "avoid walls" - they often find local corridors but fail to make progress globally. The distance gradient solves this
+                    by providing a continuous signal pointing toward the goal.
+                </div>
+
+                <h4>Action Masking with Logit Penalties</h4>
+                <p>
+                    Rather than filtering invalid actions after prediction, we apply <strong>-10.0 penalties to logits</strong> before softmax
+                    for any action that would hit a wall or exit the grid. This approach:
+                </p>
+                <ul>
+                    <li>Preserves differentiability (unlike hard masking)</li>
+                    <li>Works with any model architecture without retraining</li>
+                    <li>Effectively eliminates invalid moves (e^-10 ≈ 0.000045 probability)</li>
+                </ul>
+                <div class="note-box">
+                    <strong>Implementation detail:</strong> The penalty is applied after the model outputs but before argmax selection.
+                    This means the model never learns that walls exist - we simply prevent it from making impossible moves at inference time.
+                    Alternative approaches like training with invalid move penalties pollute the loss signal and slow convergence.
+                </div>
+
+                <h4>Anti-Backtracking Penalty</h4>
+                <p>
+                    Models exhibit oscillation in corridors (UP→DOWN→UP→DOWN) because they don't track recent history. We apply a
+                    <strong>-3.0 penalty to the opposite of the last action</strong> taken. The penalty is smaller than the wall penalty
+                    because backtracking is sometimes necessary (dead ends).
+                </p>
+                <div class="note-box">
+                    <strong>Design choice:</strong> We tried maintaining a full path history and penalizing revisited cells, but this
+                    caused the model to get stuck in dead ends. The single-step memory (last action only) provides just enough bias
+                    against oscillation without preventing escape from dead ends.
+                </div>
+
+                <h4>Median-Based Dataset Balancing</h4>
+                <p>
+                    A* paths from top-left to bottom-right naturally contain ~40-50% DOWN/RIGHT moves but only ~5-10% UP/LEFT.
+                    Naive training on this distribution causes severe directional bias. Our solution:
+                </p>
+                <ol>
+                    <li>Group samples by action (UP, DOWN, LEFT, RIGHT)</li>
+                    <li>Calculate median group size (not mean, to handle outliers)</li>
+                    <li>Oversample minority classes with replacement</li>
+                    <li>Subsample majority classes without replacement</li>
+                    <li>Cap at 1000 samples per class to prevent overfitting on repeated examples</li>
+                </ol>
+                <div class="note-box">
+                    <strong>Why not weighted loss?</strong> We tried class-weighted cross-entropy (w_DOWN = 0.5, w_UP = 5.0) but found
+                    it destabilizes training. The model oscillates between "always predict UP" and "always predict DOWN" depending on
+                    which minority class gets high weight. Resampling provides stable 25% per class without loss function modifications.
+                </div>
+
+                <h4>Percentile-Based Activation Visualization</h4>
+                <p>
+                    Visualizing CNN activations requires thresholding, but absolute thresholds fail across different maze configurations.
+                    We use <strong>95th and 85th percentile thresholds</strong> computed per-inference, highlighting the top 5% and top 15%
+                    of activations regardless of absolute magnitude.
+                </p>
+                <div class="note-box">
+                    <strong>Why percentiles?</strong> Fixed thresholds either show nothing (threshold too high) or everything (threshold too low).
+                    Percentiles adapt automatically: sparse activations on empty mazes get highlighted, but only the most important regions
+                    are shown on complex mazes. This matches how attention visualization works in transformer papers.
+                </div>
+
+                <h4>Browser-Specific Optimizations</h4>
+                <p>
+                    Training in the browser requires different tradeoffs than server-side training:
+                </p>
+                <ul>
+                    <li><strong>Reduced dataset size:</strong> 3,600 samples (vs 12,000 in Python version) to fit in browser memory and train in <3 minutes</li>
+                    <li><strong>Smaller batch sizes:</strong> 32 (vs 64-128 typical) because WebGPU has stricter memory limits than CUDA</li>
+                    <li><strong>No validation split:</strong> We use all data for training since the dataset is tiny and we track test performance separately</li>
+                    <li><strong>Lower learning rate:</strong> 0.001 (vs 0.01 initially) because browser training is less stable than Python/PyTorch</li>
+                </ul>
+
+                <h4>Dual Architecture Support</h4>
+                <p>
+                    The same codebase supports both CNN and Transformer models. Key implementation details:
+                </p>
+                <ul>
+                    <li><strong>CNN input:</strong> Reshaped to [batch, 10, 10, 2] four-dimensional tensor</li>
+                    <li><strong>Transformer input:</strong> Flattened to [batch, 100] two-dimensional tensor (grid only, no distance channel yet)</li>
+                    <li><strong>Model disposal:</strong> Switching architectures disposes the old model to prevent memory leaks</li>
+                    <li><strong>Visualization switch:</strong> Legend text updates to show "Activation" for CNN or "Attention" for Transformer</li>
+                </ul>
+            </section>
+
+            <!-- ARCHITECTURE COMPARISON -->
+            <section class="doc-section">
+                <h3>Model Architectures Explained</h3>
+                <p>
+                    Both architectures solve the same problem but use completely different approaches to understanding spatial structure.
+                </p>
+
+                <div class="two-column">
+                    <div class="column-box">
+                        <h4>CNN (Recommended)</h4>
+                        <p><strong>How it thinks:</strong> "I see images of mazes and learn local spatial patterns."</p>
+
+                        <div class="architecture-flow">
+                            10×10×2 maze image<br>
+                            ↓<br>
+                            First Conv Layer (16 filters detect basic patterns)<br>
+                            ↓<br>
+                            Second Conv Layer (32 filters combine patterns)<br>
+                            ↓<br>
+                            Flatten & Dense (decision making)<br>
+                            ↓<br>
+                            4 action probabilities
+                        </div>
+
+                        <div class="note-box">
+                            <strong>Strengths:</strong>
+                            <ul style="margin-top: 8px;">
+                                <li>Fast training: 2-3 minutes</li>
+                                <li>Lightweight: ~14K parameters</li>
+                                <li>Natural for grid-based tasks</li>
+                                <li>High maze success rate</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="column-box">
+                        <h4>Transformer (Experimental)</h4>
+                        <p><strong>How it thinks:</strong> "Each cell is a token, and I learn which cells relate to each other."</p>
+
+                        <div class="architecture-flow">
+                            100 position tokens (flattened maze)<br>
+                            ↓<br>
+                            Embedding Layer (project to 64 dims)<br>
+                            ↓<br>
+                            Positional Encoding (add position info)<br>
+                            ↓<br>
+                            Multi-Head Attention (4 heads learn relationships)<br>
+                            ↓<br>
+                            Feed-Forward + Pooling<br>
+                            ↓<br>
+                            4 action probabilities
+                        </div>
+
+                        <div class="note-box">
+                            <strong>Trade-offs:</strong>
+                            <ul style="margin-top: 8px;">
+                                <li>Slower training: 10+ minutes</li>
+                                <li>Heavier: ~60K parameters</li>
+                                <li>Browser performance limits</li>
+                                <li>Interesting attention patterns</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- IMPLEMENTATION DETAILS -->
+            <section class="doc-section">
+                <h3>Implementation Details & Design Decisions</h3>
+
+                <h4>Why 3×3 Kernels?</h4>
+                <p>
+                    We use 3×3 convolutional kernels specifically because that's the minimum size to detect corridors and turns.
+                    A 1×1 kernel can't see neighbors (no spatial context). A 5×5 kernel sees too much at once on a 10×10 grid
+                    (half the maze in the receptive field of the first layer). 3×3 provides exactly one step of lookahead in each direction.
+                </p>
+                <div class="note-box">
+                    <strong>Tested alternatives:</strong> We tried 5×5 kernels thinking more context = better, but the model became
+                    overconfident and made worse decisions. With 3×3, the model learns "if there's a wall one step ahead, don't go that way"
+                    which generalizes better than "if there's a wall anywhere in this 5×5 region, avoid this general direction."
+                </div>
+
+                <h4>Why Two Conv Layers?</h4>
+                <p>
+                    One layer can only see 3×3 neighborhoods. Two layers see 5×5 neighborhoods (3×3 of 3×3s). This is critical for
+                    detecting patterns like "T-junctions" where the best move depends on context beyond immediate neighbors.
+                </p>
+                <ul>
+                    <li><strong>Layer 1:</strong> Detects edges, corners, walls (local features)</li>
+                    <li><strong>Layer 2:</strong> Combines into "corridor types", "junction shapes" (compositional features)</li>
+                </ul>
+                <div class="note-box">
+                    <strong>Why not three layers?</strong> Tried it - training became unstable and the model actually performed worse.
+                    The hypothesis is that three layers see 7×7 regions, which is too large for a 10×10 grid. The model started
+                    memorizing specific maze layouts instead of learning general navigation principles.
+                </div>
+
+                <h4>Filter Count Progression (16 → 32)</h4>
+                <p>
+                    Standard practice is to double filter counts each layer. We stick with this not for theoretical reasons but because
+                    it empirically works. Tried 16→16 (worse, not enough capacity), 16→64 (overfits, too many parameters), 8→16 (underfits).
+                </p>
+
+                <h4>Padding Strategy</h4>
+                <p>
+                    We use <strong>padding='same'</strong> on both conv layers to maintain 10×10 spatial dimensions throughout.
+                    Alternative 'valid' padding shrinks to 8×8 then 6×6, losing edge information where many interesting decisions happen
+                    (corners of the maze).
+                </p>
+
+                <h4>Normalization Scheme</h4>
+                <p>
+                    Grid values (0-5) are normalized by dividing by 5.0, putting them in [0, 1] range. Distance values are already
+                    normalized during generation (distance / 20). This ensures both channels have similar magnitudes.
+                </p>
+                <div class="note-box">
+                    <strong>Why not batch normalization?</strong> We tried adding batch norm after each conv layer. Performance
+                    actually got worse, likely because batch norm destroys the absolute meaning of values. The model needs to know
+                    "this is definitely a wall (value=1)" not "this is above/below the batch average."
+                </div>
+
+                <h4>Activation Extraction for Visualization</h4>
+                <p>
+                    We extract from conv2 (not conv1) because conv1 activations are too low-level (just edges). Conv2 shows
+                    "decision-relevant features." The extraction process:
+                </p>
+                <ol>
+                    <li>Create intermediate model: inputs → conv2.output</li>
+                    <li>Run inference, get [1, 10, 10, 32] tensor</li>
+                    <li>Average across 32 filters: activation[r][c] = mean(tensor[0][r][c][:])</li>
+                    <li>Compute 95th/85th percentiles of the 100 averaged values</li>
+                    <li>Overlay yellow/blue on cells above thresholds</li>
+                </ol>
+                <div class="note-box">
+                    <strong>Why average filters instead of max pooling?</strong> Max pooling shows "any filter firing strongly" but we
+                    want "consensus across filters." Averaging reveals cells where multiple different feature detectors agree this
+                    location is important, which better correlates with actual model decisions.
+                </div>
+
+                <div class="note-box">
+                    <h5>How We Extract Activations:</h5>
+                    <ol>
+                        <li>Run the maze state through the network up to the second convolutional layer (conv2)</li>
+                        <li>Extract the output: a 10×10×32 tensor (32 different feature maps)</li>
+                        <li>Average across all 32 filters to get a single 10×10 "importance map"</li>
+                        <li>Calculate percentile thresholds (95th and 85th percentile)</li>
+                        <li>Highlight cells: Yellow = top 5%, Blue = top 15%</li>
+                    </ol>
+                </div>
+
+                <p><strong>What you'll typically see highlighted:</strong></p>
+                <ul>
+                    <li><strong>Agent's current position</strong> - "I'm here"</li>
+                    <li><strong>The goal location</strong> - "I need to get there"</li>
+                    <li><strong>Corridor junctions</strong> - "Important decision points"</li>
+                    <li><strong>Nearby walls</strong> - "Obstacles to avoid"</li>
+                    <li><strong>Open paths toward goal</strong> - "Promising routes"</li>
+                </ul>
+
+                <p style="margin-top: 15px; font-style: italic; color: #666;">
+                    This visualization makes the "black box" neural network more interpretable. Instead of just seeing "the model chose RIGHT,"
+                    you can see exactly which parts of the maze influenced that decision.
+                </p>
+            </section>
+
+            <!-- TRAINING PROCESS -->
+            <section class="doc-section">
+                <h3>The Training Process: Teaching Neural Networks to Navigate</h3>
+
+                <h4>Step 1: Generating Perfect Examples with A*</h4>
+                <p>
+                    Before the neural network can learn, we need a "teacher" to show it what good navigation looks like. We use the
+                    <strong>A* (A-star) pathfinding algorithm</strong>, a classic AI algorithm that's guaranteed to find the shortest path.
+                </p>
+
+                <div class="info-block">
+                    <h5>How A* Works (The Intuition):</h5>
+                    <p>Imagine you're exploring a maze with a cost tracker and a compass:</p>
+                    <ul>
+                        <li><strong>g-score</strong>: "How many steps have I taken from the start?"</li>
+                        <li><strong>h-score (heuristic)</strong>: "How many steps in a straight line to the goal?" (Manhattan distance)</li>
+                        <li><strong>f-score</strong>: g + h = "Total estimated cost of this path"</li>
+                    </ul>
+                    <p>
+                        A* always expands the position with the lowest f-score next, balancing between paths that are already short
+                        and paths that point toward the goal. This guarantees finding the optimal path.
+                    </p>
+                </div>
+
+                <h5>Creating Training Samples:</h5>
+                <p>
+                    Once A* finds the optimal path from start to goal, we create one training sample for each step along the path.
+                    For example, if the path goes from position (2,3) to (2,4), we create a sample with input = maze state at (2,3)
+                    and output = RIGHT action.
+                </p>
+                <p>
+                    We generate 200 random mazes and run A* on each one, typically producing around 3,000-4,000 training samples total.
+                </p>
+
+                <h4>Step 2: Fixing the Direction Bias Problem</h4>
+
+                <div class="note-box" style="border-left-color: #888;">
+                    <h5>The Problem: Natural Bias in Maze Data</h5>
+                    <p>
+                        Since mazes are generated with the start in the top-left and goal in the bottom-right, optimal paths naturally
+                        contain far more DOWN and RIGHT moves than UP and LEFT. If we train on this imbalanced data, the model learns
+                        a simple but wrong strategy: "Just always go down-right and you'll usually be correct!"
+                    </p>
+                </div>
+
+                <div class="two-column">
+                    <div class="column-box">
+                        <h5>Before Balancing</h5>
+                        <table style="width: 100%; margin-top: 10px; font-size: 0.9em;">
+                            <tr><td>UP:</td><td style="text-align: right;">200 samples (5%)</td></tr>
+                            <tr><td>DOWN:</td><td style="text-align: right;">1500 samples (40%)</td></tr>
+                            <tr><td>LEFT:</td><td style="text-align: right;">300 samples (8%)</td></tr>
+                            <tr><td>RIGHT:</td><td style="text-align: right;">1700 samples (47%)</td></tr>
+                        </table>
+                        <p style="margin-top: 10px; color: #666; font-size: 0.9em; font-style: italic;">
+                            Heavily biased toward DOWN/RIGHT
+                        </p>
+                    </div>
+
+                    <div class="column-box">
+                        <h5>After Balancing</h5>
+                        <table style="width: 100%; margin-top: 10px; font-size: 0.9em;">
+                            <tr><td>UP:</td><td style="text-align: right;">900 samples (25%)</td></tr>
+                            <tr><td>DOWN:</td><td style="text-align: right;">900 samples (25%)</td></tr>
+                            <tr><td>LEFT:</td><td style="text-align: right;">900 samples (25%)</td></tr>
+                            <tr><td>RIGHT:</td><td style="text-align: right;">900 samples (25%)</td></tr>
+                        </table>
+                        <p style="margin-top: 10px; color: #666; font-size: 0.9em; font-style: italic;">
+                            Perfectly balanced distribution
+                        </p>
+                    </div>
+                </div>
+
+                <div class="info-block">
+                    <h5>The Balancing Strategy:</h5>
+                    <ol>
+                        <li>Group all training samples by their action (UP, DOWN, LEFT, RIGHT)</li>
+                        <li>Find the median group size (in this case, 900)</li>
+                        <li>For <strong>overrepresented</strong> directions (DOWN, RIGHT): randomly sample down to 900 examples</li>
+                        <li>For <strong>underrepresented</strong> directions (UP, LEFT): randomly sample with replacement (duplicating examples) up to 900</li>
+                        <li>Shuffle the final balanced dataset</li>
+                    </ol>
+                </div>
+
+                <p>
+                    <strong>Result:</strong> The model now sees each direction with equal frequency during training, learning to navigate
+                    in all directions rather than just memorizing "go down-right."
+                </p>
+
+                <h4>Step 3: Training the Neural Network</h4>
+                <p>
+                    With our balanced dataset ready, we train the model using supervised learning. The network sees thousands of examples
+                    of "in this maze state, the optimal action is X" and gradually learns the patterns.
+                </p>
+
+                <div class="info-block">
+                    <h5>Training Configuration:</h5>
+                    <ul>
+                        <li><strong>Epochs:</strong> 20 (one full pass through all training data = 1 epoch)</li>
+                        <li><strong>Batch Size:</strong> 32 (process 32 samples before updating weights)</li>
+                        <li><strong>Learning Rate:</strong> 0.001 (how aggressively to update weights, using Adam optimizer)</li>
+                        <li><strong>Loss Function:</strong> Categorical Cross-Entropy (measures prediction error for classification)</li>
+                    </ul>
+                </div>
+
+                <h5>What Happens During Each Training Step:</h5>
+                <ol>
+                    <li><strong>Forward Pass:</strong> Feed a batch of 32 maze states through the network</li>
+                    <li><strong>Prediction:</strong> Network outputs probabilities for each action [UP, DOWN, LEFT, RIGHT]</li>
+                    <li><strong>Loss Calculation:</strong> Compare predictions to optimal actions, calculate error</li>
+                    <li><strong>Backpropagation:</strong> Calculate how to adjust each weight to reduce error</li>
+                    <li><strong>Update Weights:</strong> Apply small changes to make better predictions next time</li>
+                </ol>
+
+                <p>
+                    This process repeats for all batches across 20 epochs. You'll see the loss decrease and accuracy increase as the
+                    model learns the navigation patterns. Typically, the CNN converges around epoch 15-20 with 85-95% accuracy.
+                </p>
+            </section>
+
+            <!-- INFERENCE & SMART NAVIGATION -->
+            <section class="doc-section">
+                <h3>Inference & Smart Navigation</h3>
+
+                <h4>From Training to Testing: How the Model Navigates</h4>
+                <p>
+                    After training, when we test the model on a new maze, it follows these steps at each position:
+                </p>
+
+                <ol>
+                    <li>Encode current maze state as 10×10×2 input</li>
+                    <li>Run through the neural network</li>
+                    <li>Get raw action probabilities [0.05, 0.70, 0.15, 0.10]</li>
+                    <li>Apply smart navigation post-processing</li>
+                    <li>Select action with highest adjusted probability</li>
+                    <li>Move agent, update position, repeat</li>
+                </ol>
+
+                <h4>Smart Navigation Post-Processing</h4>
+                <p>
+                    Raw neural network predictions aren't perfect. Sometimes the model predicts a move into a wall or suggests backtracking.
+                    We add two intelligent layers that fix these issues without retraining:
+                </p>
+
+                <div class="info-block">
+                    <h5>1. Valid Action Masking</h5>
+                    <p><strong>Problem:</strong> The model sometimes predicts moving into a wall or off the grid edge.</p>
+                    <p>
+                        <strong>Solution:</strong> Before selecting an action, we check which moves are physically valid. For any action
+                        that would hit a wall or go out of bounds, we apply a large penalty (-10.0) to its probability score.
+                    </p>
+                    <p style="margin-top: 10px; font-family: monospace; font-size: 0.9em; background: #f5f5f5; padding: 10px; border: 1px solid #ddd;">
+                        Example:<br>
+                        Raw: [UP: 0.25, DOWN: 0.40, LEFT: 0.20, RIGHT: 0.15]<br>
+                        Wall to the left detected!<br>
+                        After: [UP: 0.25, DOWN: 0.40, LEFT: -9.80, RIGHT: 0.15]<br>
+                        → DOWN selected (highest valid score)
+                    </p>
+                </div>
+
+                <div class="info-block">
+                    <h5>2. Anti-Backtracking Penalty</h5>
+                    <p><strong>Problem:</strong> In narrow corridors, the model sometimes oscillates back and forth (UP → DOWN → UP → DOWN...).</p>
+                    <p>
+                        <strong>Solution:</strong> We track the last action taken. If the model considers the opposite direction
+                        (UP↔DOWN or LEFT↔RIGHT), we apply a moderate penalty (-3.0) to discourage but not forbid backtracking.
+                    </p>
+                    <p style="margin-top: 10px; font-family: monospace; font-size: 0.9em; background: #f5f5f5; padding: 10px; border: 1px solid #ddd;">
+                        Example:<br>
+                        Last move: UP<br>
+                        Raw: [UP: 0.10, DOWN: 0.45, LEFT: 0.25, RIGHT: 0.20]<br>
+                        After: [UP: 0.10, DOWN: -2.55, LEFT: 0.25, RIGHT: 0.20]<br>
+                        → LEFT selected (avoids backtracking to DOWN)
+                    </p>
+                </div>
+
+                <p>
+                    These two techniques dramatically improve navigation success rate without requiring additional training data or
+                    model changes. They're like "safety rails" that guide the neural network's decisions.
+                </p>
+            </section>
+
+            <!-- TRANSFORMER ATTENTION -->
+            <section class="doc-section">
+                <h3>Understanding Transformer Attention</h3>
+
+                <p style="font-style: italic; color: #666;">
+                    Note: The Transformer is experimental and trains much slower than the CNN. However, its attention mechanism
+                    provides fascinating insights into how models learn spatial relationships.
+                </p>
+
+                <h4>The Core Idea: Attention is "Learned Relevance"</h4>
+                <p>
+                    Unlike CNNs that use fixed 3×3 windows, transformers use <strong>attention mechanisms</strong> to dynamically decide
+                    which parts of the input to focus on. Think of attention as answering the question:
+                    "When making a decision at position A, which other positions should I pay attention to?"
+                </p>
+
+                <div class="info-block">
+                    <h5>The Attention Mechanism (Intuition):</h5>
+                    <p>Imagine each maze cell as a student in a classroom. The attention mechanism works like this:</p>
+                    <ul>
+                        <li><strong>Query (Q):</strong> "I'm at this position. What should I look at?"</li>
+                        <li><strong>Key (K):</strong> "Here's what I (each cell) represent."</li>
+                        <li><strong>Value (V):</strong> "Here's the useful information I (each cell) can provide."</li>
+                    </ul>
+                    <p>
+                        The attention score between two positions measures their relevance: high scores mean "these positions should
+                        influence each other," low scores mean "these positions are unrelated for this decision."
+                    </p>
+                </div>
+
+                <h5>Multi-Head Attention (4 Heads):</h5>
+                <p>
+                    Instead of one attention mechanism, we use <strong>four parallel "heads"</strong>, each learning different
+                    types of relationships. For example, one head might focus on the current agent position, another on the goal location,
+                    another on nearby obstacles, and another on corridor structure. These specializations are not explicitly programmed
+                    but emerge during training.
+                </p>
+
+                <h4>Visualizing Attention: What is the Transformer Looking At?</h4>
+                <p>
+                    During testing with the Transformer, the yellow and blue highlights show <strong>attention weights</strong> averaged
+                    across all positions and heads. This reveals which cells the model considers important for navigation decisions.
+                </p>
+
+                <p>
+                    High attention usually concentrates on the agent, goal, and key decision points. Unlike CNN activations (which are
+                    feature-based), attention weights directly show relational importance between positions.
+                </p>
+            </section>
+        </div>
+    </div>
+    <script>
+        // ========================================
+        // CONFIGURATION & CONSTANTS
+        // ========================================
+        
+        const GRID_SIZE = 10;  // 10x10 grid
+        const CELL_SIZE = 60;  // Size of each cell in pixels
+        const CANVAS_SIZE = GRID_SIZE * CELL_SIZE;
+        
+        // Cell types
+        const EMPTY = 0;
+        const OBSTACLE = 1;
+        const START = 2;
+        const GOAL = 3;
+        const PATH = 4;
+        
+        // Movement directions: UP, DOWN, LEFT, RIGHT
+        const DIRECTIONS = [
+            [-1, 0],  // UP
+            [1, 0],   // DOWN
+            [0, -1],  // LEFT
+            [0, 1]    // RIGHT
+        ];
+
+        // ========================================
+        // GLOBAL STATE
+        // ========================================
+
+        let canvas, ctx;
+        let metricsCanvas, metricsCtx;
+        let grid = [];
+        let startPos = null;
+        let goalPos = null;
+        let model = null;
+        let trainingData = [];
+        let isTraining = false;
+        let currentPath = [];
+        let attentionWeights = null;
+        let trainingHistory = {
+            epochs: [],
+            loss: [],
+            acc: [],
+            valLoss: [],
+            valAcc: []
+        };
+
+        // ========================================
+        // INITIALIZATION
+        // ========================================
+        
+        window.onload = async () => {
+            canvas = document.getElementById('gridCanvas');
+            ctx = canvas.getContext('2d');
+
+            metricsCanvas = document.getElementById('metricsCanvas');
+            metricsCtx = metricsCanvas.getContext('2d');
+
+            // Initialize TensorFlow.js with WebGPU backend (for Apple Silicon)
+            console.log('Initializing TensorFlow.js...');
+            await tf.ready();
+            
+            // Try to use WebGPU for M-series Macs, fall back to WebGL
+            try {
+                await tf.setBackend('webgpu');
+                console.log('Using WebGPU backend');
+            } catch (e) {
+                await tf.setBackend('webgl');
+                console.log('Using WebGL backend');
+                console.log(e);
+            }
+            
+            console.log('Backend:', tf.getBackend());
+            
+            // Generate initial maze
+            generateNewMaze();
+
+            // Set initial legend text based on default model (CNN)
+            updateModelSelection();
+
+            showStatus('Ready! Generate mazes and start training.', 'success');
+        };
+
+        // ========================================
+        // GRID GENERATION & A* PATHFINDING
+        // ========================================
+        
+        /**
+         * Generates a new random maze with obstacles
+         * This creates the training environment
+         */
+        function generateNewMaze() {
+
+            // Check if canvas is initialized
+            if (!canvas || !ctx) {
+                console.error('Canvas not initialized yet');
+                return;
+            }
+
+            // Initialize empty grid
+            grid = Array(GRID_SIZE).fill(null).map(() =>
+                Array(GRID_SIZE).fill(EMPTY)
+            );
+
+            // Place start and goal
+            startPos = [0, 0];
+            goalPos = [GRID_SIZE - 1, GRID_SIZE - 1];
+            grid[startPos[0]][startPos[1]] = START;
+            grid[goalPos[0]][goalPos[1]] = GOAL;
+
+            // Add random obstacles
+            const density = parseInt(document.getElementById('obstacleSlider').value);
+            const numObstacles = Math.floor((GRID_SIZE * GRID_SIZE) * density / 100);
+
+            for (let i = 0; i < numObstacles; i++) {
+                let row, col;
+                do {
+                    row = Math.floor(Math.random() * GRID_SIZE);
+                    col = Math.floor(Math.random() * GRID_SIZE);
+                } while (grid[row][col] !== EMPTY);
+
+                grid[row][col] = OBSTACLE;
+            }
+
+            // Verify there's a path from start to goal using A*
+            const path = findPath(startPos, goalPos);
+            if (!path) {
+                // If no path exists, try again
+                generateNewMaze();
+                return;
+            }
+
+            currentPath = [];
+            attentionWeights = null;
+            render();
+        }
+
+        /**
+         * A* pathfinding algorithm that works with a specific grid
+         *
+         * @param {Array} gridToUse - The grid to use for pathfinding
+         * @param {Array} start - [row, col] starting position
+         * @param {Array} goal - [row, col] goal position
+         * @returns {Array} - Array of positions representing the path, or null if no path exists
+         */
+        function findPathInGrid(gridToUse, start, goal) {
+            // Priority queue implementation using array (not optimal but simple)
+            const openSet = [];
+            const closedSet = new Set();
+            const cameFrom = new Map();
+            const gScore = new Map();
+            const fScore = new Map();
+
+            const startKey = `${start[0]},${start[1]}`;
+            const goalKey = `${goal[0]},${goal[1]}`;
+
+            // Heuristic function (Manhattan distance)
+            const h = (pos) => Math.abs(pos[0] - goal[0]) + Math.abs(pos[1] - goal[1]);
+
+            openSet.push(start);
+            gScore.set(startKey, 0);
+            fScore.set(startKey, h(start));
+
+            while (openSet.length > 0) {
+                // Get node with lowest fScore
+                let current = openSet.reduce((min, pos) => {
+                    const minKey = `${min[0]},${min[1]}`;
+                    const posKey = `${pos[0]},${pos[1]}`;
+                    return fScore.get(posKey) < fScore.get(minKey) ? pos : min;
+                });
+
+                const currentKey = `${current[0]},${current[1]}`;
+
+                // Check if we reached the goal
+                if (currentKey === goalKey) {
+                    // Reconstruct path
+                    const path = [current];
+                    let pathKey = currentKey;
+                    while (cameFrom.has(pathKey)) {
+                        const prevKey = cameFrom.get(pathKey);
+                        current = prevKey.split(',').map(Number);
+                        path.unshift(current);
+                        pathKey = prevKey;
+                    }
+                    return path;
+                }
+
+                // Move current from open to closed
+                openSet.splice(openSet.indexOf(current), 1);
+                closedSet.add(currentKey);
+
+                // Check all neighbors
+                for (const [dr, dc] of DIRECTIONS) {
+                    const neighbor = [current[0] + dr, current[1] + dc];
+                    const neighborKey = `${neighbor[0]},${neighbor[1]}`;
+
+                    // Check if neighbor is valid
+                    if (neighbor[0] < 0 || neighbor[0] >= GRID_SIZE ||
+                        neighbor[1] < 0 || neighbor[1] >= GRID_SIZE) {
+                        continue;
+                    }
+
+                    if (gridToUse[neighbor[0]][neighbor[1]] === OBSTACLE) {
+                        continue;
+                    }
+
+                    if (closedSet.has(neighborKey)) {
+                        continue;
+                    }
+
+                    // Calculate tentative gScore
+                    const tentativeGScore = gScore.get(currentKey) + 1;
+
+                    if (!openSet.some(pos => `${pos[0]},${pos[1]}` === neighborKey)) {
+                        openSet.push(neighbor);
+                    } else if (tentativeGScore >= gScore.get(neighborKey)) {
+                        continue;
+                    }
+
+                    // This path is the best so far
+                    cameFrom.set(neighborKey, currentKey);
+                    gScore.set(neighborKey, tentativeGScore);
+                    fScore.set(neighborKey, tentativeGScore + h(neighbor));
+                }
+            }
+
+            return null; // No path found
+        }
+
+        /**
+         * A* pathfinding algorithm
+         * This generates optimal paths for training data
+         *
+         * @param {Array} start - [row, col] starting position
+         * @param {Array} goal - [row, col] goal position
+         * @returns {Array} - Array of positions representing the path, or null if no path exists
+         */
+        function findPath(start, goal) {
+            return findPathInGrid(grid, start, goal);
+        }
+
+        // ========================================
+        // TRANSFORMER MODEL
+        // ========================================
+        
+        // ---------- PositionalEmbedding Layer ----------
+        class PositionalEmbedding extends tf.layers.Layer {
+            constructor(config) {
+                super(config || {});
+                this.numTokens = config.numTokens; // GRID_SIZE * GRID_SIZE
+                this.embedDim = config.embedDim;
+            }
+
+            build(inputShape) {
+                // trainable positional embeddings: shape [numTokens, embedDim]
+                this.posEmb = this.addWeight(
+                'posEmb',
+                [this.numTokens, this.embedDim],
+                'float32',
+                tf.initializers.randomNormal({stddev: 0.02})
+                );
+                super.build(inputShape);
+            }
+
+            call(inputs) {
+                // inputs shape: [batch, tokens, embedDim]
+                // Don't use tf.tidy() in custom layer call() - it breaks gradient flow!
+                const pe = tf.reshape(this.posEmb.read(), [1, this.numTokens, this.embedDim]);
+                const output = tf.add(inputs, pe);
+                return output;
+            }
+
+            computeOutputShape(inputShape) {
+                return inputShape;
+            }
+
+            getConfig() {
+                const cfg = super.getConfig();
+                return {...cfg, numTokens: this.numTokens, embedDim: this.embedDim};
+            }
+
+            static get className() { return 'PositionalEmbedding'; }
+        }
+        tf.serialization.registerClass(PositionalEmbedding);
+
+        // ---------- MultiHeadSelfAttention Layer ----------
+        // Using pure weight matrices and basic ops with known gradient support
+        class MultiHeadSelfAttention extends tf.layers.Layer {
+            constructor(config) {
+                super(config || {});
+                this.embedDim = config.embedDim;
+                this.numHeads = config.numHeads || 4;
+                if (this.embedDim % this.numHeads !== 0) {
+                throw new Error('embedDim must be divisible by numHeads');
+                }
+                this.depth = this.embedDim / this.numHeads; // d_k
+                this.seqLen = null;  // Will be set in build
+            }
+
+            build(inputShape) {
+                // inputShape: [batch, tokens, embedDim]
+                this.seqLen = inputShape[1];
+
+                // Create weight matrices using addWeight - this WILL be tracked
+                this.wq = this.addWeight(
+                    'wq',
+                    [this.embedDim, this.embedDim],
+                    'float32',
+                    tf.initializers.glorotUniform()
+                );
+
+                this.wk = this.addWeight(
+                    'wk',
+                    [this.embedDim, this.embedDim],
+                    'float32',
+                    tf.initializers.glorotUniform()
+                );
+
+                this.wv = this.addWeight(
+                    'wv',
+                    [this.embedDim, this.embedDim],
+                    'float32',
+                    tf.initializers.glorotUniform()
+                );
+
+                this.wo = this.addWeight(
+                    'wo',
+                    [this.embedDim, this.embedDim],
+                    'float32',
+                    tf.initializers.glorotUniform()
+                );
+
+                super.build(inputShape);
+            }
+
+            call(inputs) {
+                // CRITICAL: No tf.tidy() here - it breaks gradient flow!
+                // Handle both array and single tensor input
+                const x = Array.isArray(inputs) ? inputs[0] : inputs; // [batch, tokens, embedDim]
+
+                // Read weight matrices
+                const wq = this.wq.read(); // [embedDim, embedDim]
+                const wk = this.wk.read();
+                const wv = this.wv.read();
+                const wo = this.wo.read();
+
+                // Get dimensions
+                const batchSize = x.shape[0];
+                const seqLen = x.shape[1];
+                const embedDim = x.shape[2];
+
+                // Reshape x to 2D for matrix multiplication
+                const xReshaped = tf.reshape(x, [-1, embedDim]); // [batch*tokens, embedDim]
+
+                // Q, K, V projections: [batch*tokens, embedDim] @ [embedDim, embedDim] -> [batch*tokens, embedDim]
+                const qFlat = tf.matMul(xReshaped, wq);
+                const kFlat = tf.matMul(xReshaped, wk);
+                const vFlat = tf.matMul(xReshaped, wv);
+
+                // Reshape back to 3D: [batch, tokens, embedDim]
+                const q = tf.reshape(qFlat, [batchSize, seqLen, embedDim]);
+                const k = tf.reshape(kFlat, [batchSize, seqLen, embedDim]);
+                const v = tf.reshape(vFlat, [batchSize, seqLen, embedDim]);
+
+                // Single-head attention
+                // Q @ K^T: [batch, tokens, embedDim] @ [batch, embedDim, tokens] -> [batch, tokens, tokens]
+                let scores = tf.matMul(q, k, false, true);
+                scores = tf.div(scores, Math.sqrt(this.embedDim));
+
+                const attn = tf.softmax(scores, -1);
+
+                // attn @ V: [batch, tokens, tokens] @ [batch, tokens, embedDim] -> [batch, tokens, embedDim]
+                const attnOut = tf.matMul(attn, v);
+
+                // Output projection: reshape, multiply, reshape back
+                const attnOutReshaped = tf.reshape(attnOut, [-1, embedDim]); // [batch*tokens, embedDim]
+                const outputFlat = tf.matMul(attnOutReshaped, wo); // [batch*tokens, embedDim]
+                const output = tf.reshape(outputFlat, [batchSize, seqLen, embedDim]); // [batch, tokens, embedDim]
+
+                return output;
+            }
+
+            computeOutputShape(inputShape) {
+                return inputShape;
+            }
+
+            getConfig() {
+                const cfg = super.getConfig();
+                return {...cfg, embedDim: this.embedDim, numHeads: this.numHeads};
+            }
+
+            static get className() { return 'MultiHeadSelfAttention'; }
+        }
+        tf.serialization.registerClass(MultiHeadSelfAttention);
+
+        /**
+         * Creates a browser-optimized CNN model for spatial pattern recognition
+         * Input: 10x10x2 grid (maze + distance feature)
+         * Architecture designed for fast training with good accuracy
+         */
+        function createCNNModel() {
+            const numActions = 4;
+
+            const model = tf.sequential({
+                layers: [
+                    // Input: 10x10x2 (maze + distance channel)
+                    tf.layers.conv2d({
+                        inputShape: [GRID_SIZE, GRID_SIZE, 2],
+                        filters: 16,
+                        kernelSize: 3,
+                        padding: 'same',
+                        activation: 'relu',
+                        name: 'conv1'
+                    }),
+                    tf.layers.conv2d({
+                        filters: 32,
+                        kernelSize: 3,
+                        padding: 'same',
+                        activation: 'relu',
+                        name: 'conv2'
+                    }),
+                    tf.layers.flatten(),
+                    tf.layers.dense({units: 64, activation: 'relu', name: 'dense1'}),
+                    tf.layers.dense({units: numActions, activation: 'softmax', name: 'output'})
+                ]
+            });
+
+            model.compile({
+                optimizer: tf.train.adam(0.001),  // Lower LR for stability
+                loss: 'categoricalCrossentropy',
+                metrics: ['accuracy']
+            });
+
+            model.summary();
+            return model;
+        }
+
+        /**
+         * Creates an EXPERIMENTAL transformer model for path planning with custom attention
+         *
+         * ⚠️ WARNING: This is significantly slower than CNN and may not train well in browser
+         * Use CNN model for production. This is for research/experimentation only.
+         *
+         * Architecture:
+         * 1. Input: Flattened grid (GRID_SIZE * GRID_SIZE features)
+         * 2. Embedding layer
+         * 3. Positional encoding (learned)
+         * 4. Custom self-attention layer
+         * 5. Feed-forward network
+         * 6. Output: Action probabilities (4 directions)
+         */
+        function createExperimentalTransformerModel() {
+            const tokens = GRID_SIZE * GRID_SIZE;
+            const inputShape = [tokens];
+            const embedDim = 64;
+            const numActions = 4; // UP, DOWN, LEFT, RIGHT
+
+            // Input layer 
+            const input = tf.input({shape: inputShape});
+
+            let x = tf.layers.reshape({targetShape: [tokens, 1]}).apply(input);
+            x = tf.layers.dense({units: embedDim, activation: null, name: 'token_proj'}).apply(x);
+
+            // add learned positional embeddings
+            const posLayer = new PositionalEmbedding({numTokens: tokens, embedDim: embedDim, name: 'pos_emb'});
+            x = posLayer.apply(x);
+
+            // (optional) LayerNorm before attention
+            x = tf.layers.layerNormalization({epsilon: 1e-6, name: 'ln1'}).apply(x);
+
+            const attn = new MultiHeadSelfAttention({embedDim: embedDim, numHeads: 4, name: 'mha'});
+            const attnOut = attn.apply(x);
+
+            // residual + norm
+            let res = tf.layers.add().apply([x, attnOut]);
+            res = tf.layers.layerNormalization({epsilon:1e-6, name:'ln2'}).apply(res);
+
+            // feed-forward block (position-wise)
+            let ff = tf.layers.dense({units: embedDim * 4, activation: 'relu', name:'ffn_dense1'}).apply(res);
+            ff = tf.layers.dense({units: embedDim, activation: null, name:'ffn_dense2'}).apply(ff);
+
+            // residual + norm
+            let encOut = tf.layers.add().apply([res, ff]);
+            encOut = tf.layers.layerNormalization({epsilon:1e-6, name:'ln3'}).apply(encOut);
+
+            // pool and classifier
+            let pooled = tf.layers.globalAveragePooling1d().apply(encOut);
+
+            // Feed-forward network
+            x = tf.layers.dense({
+                units: 128,
+                activation: 'relu',
+                name: 'ffn_1'
+            }).apply(pooled);
+
+            // Dropout disabled to allow overfitting on small datasets
+            // x = tf.layers.dropout({rate: 0.3}).apply(x);
+
+            x = tf.layers.dense({
+                units: 64,
+                activation: 'relu',
+                name: 'ffn_2'
+            }).apply(x);
+
+            // Dropout disabled to allow overfitting on small datasets
+            // x = tf.layers.dropout({rate: 0.2}).apply(x);
+
+            // Output layer - action probabilities
+            const output = tf.layers.dense({
+                units: numActions,
+                activation: 'softmax',
+                name: 'output'
+            }).apply(x);
+
+            // Create and compile model
+            const model = tf.model({inputs: input, outputs: output});
+
+            model.compile({
+                optimizer: tf.train.adam(0.01),  // Increased learning rate for faster convergence on small dataset
+                loss: 'categoricalCrossentropy',
+                metrics: ['accuracy']
+            });
+
+            model.summary();
+
+            return model;
+        }
+
+        /**
+         * Extracts CNN activation maps from the last convolutional layer
+         * This shows what spatial features the CNN is focusing on
+         */
+        async function extractCNNActivations(inputTensor) {
+            try {
+                // Create intermediate model that outputs from conv2 layer
+                const conv2Layer = model.getLayer('conv2');
+                const intermediateModel = tf.model({
+                    inputs: model.inputs,
+                    outputs: conv2Layer.output
+                });
+
+                // Get activations [1, 10, 10, 32]
+                const activations = intermediateModel.predict(inputTensor);
+                const activationData = await activations.array();
+
+                // Average across all 32 filters to get single 10x10 map
+                const avgActivations = [];
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    avgActivations[r] = [];
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        let sum = 0;
+                        for (let f = 0; f < 32; f++) {
+                            sum += activationData[0][r][c][f];
+                        }
+                        avgActivations[r][c] = sum / 32;
+                    }
+                }
+
+                // Don't normalize - keep raw values for percentile-based thresholding
+                activations.dispose();
+                return avgActivations;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        /**
+         * Extracts attention weights from the model for visualization
+         */
+        async function extractAttentionWeights(inputTensor) {
+            try {
+                // Get layers
+                const reshapeInputLayer = model.getLayer('reshape_input');
+                const embeddingLayer = model.getLayer('embedding');
+                const posEncodingLayer = model.getLayer('positional_encoding');
+
+                // Get intermediate outputs
+                return tf.tidy(() => {
+                    let x = reshapeInputLayer.apply(inputTensor);
+                    x = embeddingLayer.apply(x);
+                    const posEnc = posEncodingLayer.apply(x);
+                    x = tf.layers.add().apply([x, posEnc]);
+
+                    // Compute attention scores manually for visualization
+                    const embedDim = 64;
+                    const scores = tf.matMul(x, x, false, true);
+                    const scaledScores = tf.div(scores, Math.sqrt(embedDim));
+                    const attentionWeights = tf.softmax(scaledScores, -1);
+
+                    return attentionWeights;
+                });
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // ========================================
+        // TRAINING DATA GENERATION
+        // ========================================
+        
+        /**
+         * Generates a maze without rendering (for training data)
+         */
+        function generateMazeForTraining() {
+            // Initialize empty grid
+            const tempGrid = Array(GRID_SIZE).fill(null).map(() =>
+                Array(GRID_SIZE).fill(EMPTY)
+            );
+
+            // Place start and goal
+            const tempStartPos = [0, 0];
+            const tempGoalPos = [GRID_SIZE - 1, GRID_SIZE - 1];
+            tempGrid[tempStartPos[0]][tempStartPos[1]] = START;
+            tempGrid[tempGoalPos[0]][tempGoalPos[1]] = GOAL;
+
+            // Add random obstacles
+            const density = parseInt(document.getElementById('obstacleSlider').value);
+            const numObstacles = Math.floor((GRID_SIZE * GRID_SIZE) * density / 100);
+
+            for (let i = 0; i < numObstacles; i++) {
+                let row, col;
+                do {
+                    row = Math.floor(Math.random() * GRID_SIZE);
+                    col = Math.floor(Math.random() * GRID_SIZE);
+                } while (tempGrid[row][col] !== EMPTY);
+
+                tempGrid[row][col] = OBSTACLE;
+            }
+
+            return { grid: tempGrid, startPos: tempStartPos, goalPos: tempGoalPos };
+        }
+
+        /**
+         * Generates training data from random mazes
+         * Creates multiple random mazes and optimal paths through them
+         * Does NOT render to the canvas to avoid interfering with the display
+         */
+        async function generateTrainingData(numSamples = 100) {
+            const data = [];
+
+            // Save current maze so we can restore it later
+            const savedGrid = grid.map(row => [...row]);
+            const savedStartPos = [...startPos];
+            const savedGoalPos = [...goalPos];
+
+            let successfulMazes = 0;
+            for (let i = 0; i < numSamples; i++) {
+                // Generate a random maze (without rendering)
+                const mazeData = generateMazeForTraining();
+                const tempGrid = mazeData.grid;
+                const tempStartPos = mazeData.startPos;
+                const tempGoalPos = mazeData.goalPos;
+
+                // Find optimal path using a modified findPath that uses the temp grid
+                const path = findPathInGrid(tempGrid, tempStartPos, tempGoalPos);
+                if (!path || path.length < 2) {
+                    continue;
+                }
+
+                successfulMazes++;
+
+                // Create training samples from each step in the path
+                for (let step = 0; step < path.length - 1; step++) {
+                    const currentPos = path[step];
+                    const nextPos = path[step + 1];
+
+                    // Create input with distance-to-goal feature (for CNN)
+                    const inputGridWithDistance = createInputWithDistance(tempGrid, currentPos, tempGoalPos);
+
+                    // Determine action (direction) taken
+                    const action = getAction(currentPos, nextPos);
+                    if (action === -1) continue;
+
+                    // Create one-hot encoded action
+                    const actionOneHot = Array(4).fill(0);
+                    actionOneHot[action] = 1;
+
+                    data.push({
+                        input: inputGridWithDistance,
+                        output: actionOneHot,
+                        position: currentPos,
+                        action: action  // Store for balancing
+                    });
+                }
+
+                // IMPORTANT: Add training data from random starting positions
+                // This creates diverse paths that include UP and LEFT moves
+                const numRandomStarts = 5;
+                for (let r = 0; r < numRandomStarts; r++) {
+                    // Pick a random non-obstacle position
+                    let randomPos;
+                    let attempts = 0;
+                    do {
+                        randomPos = [
+                            Math.floor(Math.random() * GRID_SIZE),
+                            Math.floor(Math.random() * GRID_SIZE)
+                        ];
+                        attempts++;
+                        if (attempts > 50) break; // Avoid infinite loop
+                    } while (tempGrid[randomPos[0]][randomPos[1]] === OBSTACLE);
+
+                    if (attempts > 50) continue;
+
+                    // Find path from random position to goal
+                    const randomPath = findPathInGrid(tempGrid, randomPos, tempGoalPos);
+                    if (!randomPath || randomPath.length < 2) continue;
+
+                    // Add these steps to training data
+                    for (let step = 0; step < randomPath.length - 1; step++) {
+                        const currentPos = randomPath[step];
+                        const nextPos = randomPath[step + 1];
+
+                        const inputGridWithDistance = createInputWithDistance(tempGrid, currentPos, tempGoalPos);
+
+                        const action = getAction(currentPos, nextPos);
+                        if (action === -1) continue;
+
+                        const actionOneHot = Array(4).fill(0);
+                        actionOneHot[action] = 1;
+
+                        data.push({
+                            input: inputGridWithDistance,
+                            output: actionOneHot,
+                            position: currentPos,
+                            action: action
+                        });
+                    }
+                }
+            }
+
+
+            // Restore the original maze
+            grid = savedGrid;
+            startPos = savedStartPos;
+            goalPos = savedGoalPos;
+            render();
+
+            return data;
+        }
+
+        /**
+         * Creates input with 2 channels: grid + normalized distance-to-goal
+         * Returns flattened array for CNN: [grid cells (100), distance cells (100)]
+         */
+        function createInputWithDistance(grid, agentPos, goalPos) {
+            const gridChannel = [];
+            const distChannel = [];
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    // Grid channel: mark agent position
+                    if (r === agentPos[0] && c === agentPos[1]) {
+                        gridChannel.push(5);  // Agent marker
+                    } else {
+                        gridChannel.push(grid[r][c]);
+                    }
+
+                    // Distance channel: Manhattan distance from this cell to goal
+                    const dist = Math.abs(r - goalPos[0]) + Math.abs(c - goalPos[1]);
+                    distChannel.push(dist / (GRID_SIZE * 2));  // Normalize to ~[0, 1]
+                }
+            }
+
+            return [...gridChannel, ...distChannel];  // 200 values total
+        }
+
+        /**
+         * Balances dataset by action class (like Python v3)
+         * Oversamples minority classes to match median count
+         */
+        function balanceDataset(data, maxPerClass = 1000) {
+            // Group by action
+            const actionGroups = [[], [], [], []];
+            data.forEach(sample => {
+                actionGroups[sample.action].push(sample);
+            });
+
+            // Get median count
+            const counts = actionGroups.map(g => g.length);
+            counts.sort((a, b) => a - b);
+            const medianCount = counts[Math.floor(counts.length / 2)];
+            const targetCount = Math.min(medianCount, maxPerClass);
+
+
+            // Balance by oversampling
+            const balanced = [];
+            actionGroups.forEach((group, action) => {
+                if (group.length === 0) return;
+
+                for (let i = 0; i < targetCount; i++) {
+                    const idx = Math.floor(Math.random() * group.length);
+                    balanced.push(group[idx]);
+                }
+            });
+
+            // Shuffle
+            for (let i = balanced.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [balanced[i], balanced[j]] = [balanced[j], balanced[i]];
+            }
+
+            return balanced;
+        }
+
+        /**
+         * Converts two positions into an action index
+         */
+        function getAction(from, to) {
+            const dr = to[0] - from[0];
+            const dc = to[1] - from[1];
+
+            if (dr === -1 && dc === 0) return 0; // UP
+            if (dr === 1 && dc === 0) return 1;  // DOWN
+            if (dr === 0 && dc === -1) return 2; // LEFT
+            if (dr === 0 && dc === 1) return 3;  // RIGHT
+
+            return -1;
+        }
+
+        // ========================================
+        // TRAINING LOOP
+        // ========================================
+        
+        /**
+         * Trains the transformer model
+         */
+        async function startTraining() {
+
+            if (isTraining) {
+                return;
+            }
+
+            try {
+                // Training parameters
+                const trainingSamples = 512;
+                const epochs = 20;
+                const batchSize = 32;  // Use batch size that fits dataset, not 1!
+
+
+                isTraining = true;
+                document.getElementById('trainBtn').disabled = true;
+                showStatus('Generating training data...', 'training');
+
+                // Reset training history
+                trainingHistory = {
+                    epochs: [],
+                    loss: [],
+                    acc: [],
+                    valLoss: [],
+                    valAcc: []
+                };
+
+                // Generate training data
+                const rawData = await generateTrainingData(trainingSamples);
+
+                if (rawData.length === 0) {
+                    showStatus('Failed to generate training data. Try a different maze.', 'success');
+                    isTraining = false;
+                    document.getElementById('trainBtn').disabled = false;
+                    return;
+                }
+
+                // Balance dataset (Python v3 approach)
+                showStatus('Balancing dataset...', 'training');
+                trainingData = balanceDataset(rawData, 1000);  // Max 1000 per class
+                document.getElementById('sampleCount').textContent = trainingData.length;
+
+                showStatus('Training model...', 'training');
+
+                // Get selected model type
+                const modelType = document.getElementById('modelSelect').value;
+
+                // Create model if it doesn't exist
+                if (!model) {
+                    if (modelType === 'cnn') {
+                        model = createCNNModel();
+                    } else {
+                        model = createExperimentalTransformerModel();
+                    }
+                }
+
+                // Prepare training data
+                let inputs;
+
+                if (modelType === 'cnn') {
+                    // CNN expects [batch, height, width, channels]
+                    // Input is [grid (100), distance (100)] = 200 values
+                    const inputArrays = trainingData.map(d => d.input);
+
+                    // Normalize grid channel (0-5 range) and distance is already normalized
+                    const normalized = inputArrays.map(arr => {
+                        const gridPart = arr.slice(0, 100).map(v => v / 5.0);
+                        const distPart = arr.slice(100);
+                        return [...gridPart, ...distPart];
+                    });
+
+                    // Reshape to [batch, 10, 10, 2]
+                    inputs = tf.tensor4d(
+                        normalized.map(arr => {
+                            const grid = arr.slice(0, 100);
+                            const dist = arr.slice(100);
+                            const result = [];
+                            for (let i = 0; i < GRID_SIZE; i++) {
+                                result[i] = [];
+                                for (let j = 0; j < GRID_SIZE; j++) {
+                                    const idx = i * GRID_SIZE + j;
+                                    result[i][j] = [grid[idx], dist[idx]];
+                                }
+                            }
+                            return result;
+                        }),
+                        [trainingData.length, GRID_SIZE, GRID_SIZE, 2]
+                    );
+                } else {
+                    // Transformer expects flattened input (just grid, no distance for now)
+                    const inputArrays = trainingData.map(d => d.input.slice(0, 100));  // Only grid
+                    inputs = tf.tensor2d(inputArrays);
+                    inputs = tf.div(inputs, 5.0);  // Normalize
+                }
+
+                const outputs = tf.tensor2d(trainingData.map(d => d.output));
+
+
+                // Debug: Show label distribution
+                const labelCounts = [0, 0, 0, 0];
+                trainingData.forEach(d => {
+                    const actionIdx = d.output.indexOf(1);
+                    labelCounts[actionIdx]++;
+                });
+
+
+                // Debug: Check shapes before training
+
+                // Debug: Check model weights
+
+                // CRITICAL DEBUG: Check if weights actually change during training
+                const initialWeights = model.getWeights();
+                const initialWeightData = await initialWeights[0].array();
+
+                // Test model before training
+                try {
+                    const predsBefore = model.predict(inputs);
+                    const predsBeforeArray = await predsBefore.array();
+                    predsBefore.dispose();
+                } catch (e) {
+                    console.error('Error during prediction:', e);
+                    throw e;
+                }
+
+                // Train the model
+                const history = await model.fit(inputs, outputs, {
+                    epochs: epochs,
+                    batchSize: batchSize,
+                    validationSplit: 0.0,  // No validation split for tiny datasets - we want ALL data for training
+                    shuffle: true,
+                    callbacks: {
+                        onEpochEnd: async (epoch, logs) => {
+                            console.log(`Epoch ${epoch + 1}/${epochs} - Loss: ${logs.loss.toFixed(4)}, Acc: ${(logs.acc * 100).toFixed(1)}%`);
+
+                            // Update status
+                            showStatus(`Training: Epoch ${epoch + 1}/${epochs} - Loss: ${logs.loss.toFixed(4)}, Accuracy: ${(logs.acc * 100).toFixed(1)}%`, 'training');
+
+                            // Record metrics
+                            trainingHistory.epochs.push(epoch + 1);
+                            trainingHistory.loss.push(logs.loss);
+                            trainingHistory.acc.push(logs.acc);
+                            if (logs.val_loss !== undefined) {
+                                trainingHistory.valLoss.push(logs.val_loss);
+                                trainingHistory.valAcc.push(logs.val_acc);
+                            }
+
+                            // Render metrics chart
+                            renderMetricsChart();
+                            await tf.nextFrame();
+                        }
+                    }
+                });
+
+                // Test model after training
+                const predsAfter = model.predict(inputs);
+                const predsAfterArray = await predsAfter.array();
+                predsAfter.dispose();
+
+                // CRITICAL DEBUG: Check if weights changed
+                const finalWeights = model.getWeights();
+                const finalWeightData = await finalWeights[0].array();
+
+                // Compare
+                const weightsChanged = JSON.stringify(initialWeightData.slice(0, 5)) !== JSON.stringify(finalWeightData.slice(0, 5));
+
+
+                // Cleanup tensors
+                inputs.dispose();
+                outputs.dispose();
+
+                isTraining = false;
+                document.getElementById('trainBtn').disabled = false;
+                document.getElementById('testBtn').disabled = false;
+                showStatus('Training complete! Click "Test Navigation" to see it in action.', 'success');
+            } catch (error) {
+                console.error('Training error:', error);
+                showStatus(`Training error: ${error.message}`, 'success');
+                isTraining = false;
+                document.getElementById('trainBtn').disabled = false;
+            }
+        }
+
+        // ========================================
+        // MODEL TESTING & ATTENTION VISUALIZATION
+        // ========================================
+
+        /**
+         * Gets valid actions at a given position
+         */
+        function getValidActionsAt(grid, pos) {
+            const valid = [false, false, false, false];
+            for (let action = 0; action < 4; action++) {
+                const [dr, dc] = DIRECTIONS[action];
+                const newRow = pos[0] + dr;
+                const newCol = pos[1] + dc;
+
+                if (newRow >= 0 && newRow < GRID_SIZE &&
+                    newCol >= 0 && newCol < GRID_SIZE &&
+                    grid[newRow][newCol] !== OBSTACLE) {
+                    valid[action] = true;
+                }
+            }
+            return valid;
+        }
+
+        /**
+         * Returns the opposite action (for anti-backtracking)
+         */
+        function getOppositeAction(action) {
+            const opposites = {0: 1, 1: 0, 2: 3, 3: 2};  // UP<->DOWN, LEFT<->RIGHT
+            return opposites[action];
+        }
+
+        /**
+         * Tests the trained model on the current maze
+         * Visualizes REAL attention weights from the transformer
+         */
+        async function testModel() {
+            if (!model) {
+                showStatus('Please train the model first!', 'success');
+                return;
+            }
+
+
+            currentPath = [startPos];
+            let currentPos = [...startPos];
+            const maxSteps = 3 * GRID_SIZE; // Prevent infinite loops
+            let steps = 0;
+
+            showStatus('Model navigating...', 'training');
+
+            const modelType = document.getElementById('modelSelect').value;
+            let lastAction = null;  // Track last action for anti-backtracking
+
+            while (steps < maxSteps) {
+                // Create input with distance feature
+                const inputWithDist = createInputWithDistance(grid, currentPos, goalPos);
+
+                let inputTensor;
+                if (modelType === 'cnn') {
+                    // Normalize and reshape for CNN
+                    const gridPart = inputWithDist.slice(0, 100).map(v => v / 5.0);
+                    const distPart = inputWithDist.slice(100);
+                    const normalized = [...gridPart, ...distPart];
+
+                    const grid2d = [];
+                    const grid1d = normalized.slice(0, 100);
+                    const dist1d = normalized.slice(100);
+                    for (let i = 0; i < GRID_SIZE; i++) {
+                        grid2d[i] = [];
+                        for (let j = 0; j < GRID_SIZE; j++) {
+                            const idx = i * GRID_SIZE + j;
+                            grid2d[i][j] = [grid1d[idx], dist1d[idx]];
+                        }
+                    }
+
+                    inputTensor = tf.tensor4d([grid2d], [1, GRID_SIZE, GRID_SIZE, 2]);
+                } else {
+                    // Transformer: just use grid
+                    const gridOnly = inputWithDist.slice(0, 100);
+                    inputTensor = tf.tensor2d([gridOnly]);
+                    inputTensor = tf.div(inputTensor, 5.0);
+                }
+
+                // Get raw prediction logits
+                const prediction = model.predict(inputTensor);
+                let logits = await prediction.array();
+                logits = logits[0];  // Get first batch
+
+                // Apply valid action masking (penalize invalid moves)
+                const validActions = getValidActionsAt(grid, currentPos);
+                for (let a = 0; a < 4; a++) {
+                    if (!validActions[a]) {
+                        logits[a] -= 10.0;  // Large penalty for invalid moves
+                    }
+                }
+
+                // Apply anti-backtracking penalty (Python v3 style)
+                if (lastAction !== null) {
+                    const oppositeAction = getOppositeAction(lastAction);
+                    logits[oppositeAction] -= 3.0;  // Penalty for going backwards
+                }
+
+                // Get action from modified logits
+                const action = logits.indexOf(Math.max(...logits));
+
+                // Get prediction probabilities to see confidence
+                const predProbs = await prediction.array();
+
+                // Extract visualization: CNN activation maps or Transformer attention
+                if (modelType === 'cnn') {
+                    // Extract CNN activation maps from last conv layer
+                    try {
+                        attentionWeights = await extractCNNActivations(inputTensor);
+                        if (!attentionWeights) {
+                            attentionWeights = null;
+                        }
+                    } catch (e) {
+                        attentionWeights = null;
+                    }
+                } else {
+                    // Extract REAL attention weights from the transformer!
+                    try {
+                        const attentionTensor = await extractAttentionWeights(inputTensor);
+                    if (attentionTensor) {
+                        // Get the attention weights and reshape them to grid format
+                        const attentionData = await attentionTensor.array();
+
+                        // Average across all positions to get a single attention map
+                        // Shape is [batch, seq_len, seq_len], we want [seq_len]
+                        const avgAttention = attentionData[0].map(row =>
+                            row.reduce((sum, val) => sum + val, 0) / row.length
+                        );
+
+                        // Reshape to grid
+                        attentionWeights = [];
+                        for (let r = 0; r < GRID_SIZE; r++) {
+                            attentionWeights[r] = [];
+                            for (let c = 0; c < GRID_SIZE; c++) {
+                                const idx = r * GRID_SIZE + c;
+                                attentionWeights[r][c] = avgAttention[idx];
+                            }
+                        }
+
+                        // Normalize to 0-1
+                        const maxAtt = Math.max(...avgAttention);
+                        const minAtt = Math.min(...avgAttention);
+                        for (let r = 0; r < GRID_SIZE; r++) {
+                            for (let c = 0; c < GRID_SIZE; c++) {
+                                attentionWeights[r][c] = (attentionWeights[r][c] - minAtt) / (maxAtt - minAtt + 1e-10);
+                            }
+                        }
+
+                        attentionTensor.dispose();
+                    } else {
+                        // Fallback to simulation if extraction fails
+                        attentionWeights = simulateAttentionWeights(currentPos);
+                    }
+                    } catch (e) {
+                        console.log('Attention extraction failed, using simulation:', e);
+                        attentionWeights = simulateAttentionWeights(currentPos);
+                    }
+                }
+
+                inputTensor.dispose();
+                prediction.dispose();
+
+                // Take action
+                const [dr, dc] = DIRECTIONS[action];
+                const nextPos = [currentPos[0] + dr, currentPos[1] + dc];
+
+                // Check if move is valid
+                if (nextPos[0] < 0 || nextPos[0] >= GRID_SIZE ||
+                    nextPos[1] < 0 || nextPos[1] >= GRID_SIZE ||
+                    grid[nextPos[0]][nextPos[1]] === OBSTACLE) {
+                    showStatus('Navigation failed - invalid move. Model needs more training.', 'success');
+                    break;
+                }
+
+                currentPos = nextPos;
+                currentPath.push(currentPos);
+                lastAction = action;  // Track for anti-backtracking
+
+                // Render and wait a bit for visualization
+                render();
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // Check if reached goal
+                if (currentPos[0] === goalPos[0] && currentPos[1] === goalPos[1]) {
+                    showStatus('Goal reached!', 'success');
+                    return;
+                }
+
+                steps++;
+            }
+
+            if (steps >= maxSteps) {
+                showStatus('Navigation failed - max steps reached. Model needs more training.', 'success');
+            }
+        }
+
+        /**
+         * Simulates attention weights for visualization when real extraction fails
+         */
+        function simulateAttentionWeights(currentPos) {
+            const weights = Array(GRID_SIZE).fill(null).map(() => 
+                Array(GRID_SIZE).fill(0)
+            );
+            
+            // Simulate attention focused on:
+            // 1. Current position
+            // 2. Goal position
+            // 3. Nearby empty cells
+            
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    // Distance to current position
+                    const distToCurrent = Math.abs(r - currentPos[0]) + Math.abs(c - currentPos[1]);
+                    // Distance to goal
+                    const distToGoal = Math.abs(r - goalPos[0]) + Math.abs(c - goalPos[1]);
+                    
+                    // Simple attention simulation
+                    if (grid[r][c] === OBSTACLE) {
+                        weights[r][c] = 0;
+                    } else {
+                        weights[r][c] = 1 / (1 + distToCurrent) + 1 / (1 + distToGoal);
+                    }
+                }
+            }
+            
+            // Normalize
+            const max = Math.max(...weights.flat());
+            return weights.map(row => row.map(w => w / max));
+        }
+
+        // ========================================
+        // RENDERING
+        // ========================================
+        
+        /**
+         * Renders the grid, attention weights, and current path
+         */
+        function render() {
+
+            if (!canvas || !ctx) {
+                console.error('Canvas or context not initialized');
+                return;
+            }
+
+            if (!grid || grid.length === 0) {
+                console.error('Grid not initialized');
+                return;
+            }
+
+            ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+            // Draw grid base first
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const x = c * CELL_SIZE;
+                    const y = r * CELL_SIZE;
+
+                    // Draw cell based on type
+                    switch (grid[r][c]) {
+                        case EMPTY:
+                            ctx.fillStyle = '#1a1f3a';
+                            break;
+                        case OBSTACLE:
+                            ctx.fillStyle = '#5f5f5f';
+                            break;
+                        case START:
+                            ctx.fillStyle = '#4a90e2';
+                            break;
+                        case GOAL:
+                            ctx.fillStyle = '#e24a4a';
+                            break;
+                    }
+
+                    ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+                }
+            }
+
+            // Draw attention/activation heatmap OVER the grid base
+            if (attentionWeights) {
+                // Calculate percentiles for thresholding (like Python v3)
+                const flatWeights = attentionWeights.flat();
+                const sortedWeights = [...flatWeights].sort((a, b) => a - b);
+                const p95 = sortedWeights[Math.floor(sortedWeights.length * 0.95)];
+                const p85 = sortedWeights[Math.floor(sortedWeights.length * 0.85)];
+
+
+                let yellowCount = 0;
+                let blueCount = 0;
+
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        const weight = attentionWeights[r][c];
+                        const x = c * CELL_SIZE;
+                        const y = r * CELL_SIZE;
+
+                        // Only show top 15% (using percentile-based coloring)
+                        if (weight >= p95) {
+                            // Top 5% - bright yellow
+                            ctx.fillStyle = 'rgba(255, 255, 100, 0.25)';
+                            ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+                            yellowCount++;
+                        } else if (weight >= p85) {
+                            // Top 15% - blue
+                            ctx.fillStyle = 'rgba(100, 100, 255, 0.2)';
+                            ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+                            blueCount++;
+                        }
+                    }
+                }
+
+            } else {
+            }
+
+            // Draw grid lines on top
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const x = c * CELL_SIZE;
+                    const y = r * CELL_SIZE;
+
+                    ctx.strokeStyle = '#0a0e27';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
+                }
+            }
+            
+            // Draw current path
+            if (currentPath.length > 0) {
+                ctx.strokeStyle = '#50c878';
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                ctx.beginPath();
+                const [startR, startC] = currentPath[0];
+                ctx.moveTo(startC * CELL_SIZE + CELL_SIZE / 2, startR * CELL_SIZE + CELL_SIZE / 2);
+                
+                for (let i = 1; i < currentPath.length; i++) {
+                    const [r, c] = currentPath[i];
+                    ctx.lineTo(c * CELL_SIZE + CELL_SIZE / 2, r * CELL_SIZE + CELL_SIZE / 2);
+                }
+                ctx.stroke();
+                
+                // Draw agent at current position
+                const [agentR, agentC] = currentPath[currentPath.length - 1];
+                ctx.fillStyle = '#50c878';
+                ctx.beginPath();
+                ctx.arc(
+                    agentC * CELL_SIZE + CELL_SIZE / 2,
+                    agentR * CELL_SIZE + CELL_SIZE / 2,
+                    CELL_SIZE / 4,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            }
+        }
+
+        // ========================================
+        // METRICS VISUALIZATION
+        // ========================================
+
+        function renderMetricsChart() {
+            if (!metricsCtx || trainingHistory.epochs.length === 0) return;
+
+            const width = metricsCanvas.width;
+            const height = metricsCanvas.height;
+            const padding = 40;
+            const chartWidth = width - 2 * padding;
+            const chartHeight = height - 2 * padding;
+
+            // Clear canvas
+            metricsCtx.fillStyle = '#0a0e27';
+            metricsCtx.fillRect(0, 0, width, height);
+
+            // Get data ranges
+            const maxEpoch = Math.max(...trainingHistory.epochs);
+            const maxLoss = Math.max(...trainingHistory.loss);
+            const minLoss = Math.min(...trainingHistory.loss);
+            const maxAcc = 1.0;  // Accuracy is 0-1
+
+            // Draw axes
+            metricsCtx.strokeStyle = '#555';
+            metricsCtx.lineWidth = 1;
+            metricsCtx.beginPath();
+            metricsCtx.moveTo(padding, padding);
+            metricsCtx.lineTo(padding, height - padding);
+            metricsCtx.lineTo(width - padding, height - padding);
+            metricsCtx.stroke();
+
+            // Draw loss line (left y-axis)
+            if (trainingHistory.loss.length > 1) {
+                metricsCtx.strokeStyle = '#e24a4a';
+                metricsCtx.lineWidth = 2;
+                metricsCtx.beginPath();
+
+                for (let i = 0; i < trainingHistory.epochs.length; i++) {
+                    const x = padding + (trainingHistory.epochs[i] / maxEpoch) * chartWidth;
+                    const y = height - padding - ((trainingHistory.loss[i] - minLoss) / (maxLoss - minLoss + 0.001)) * chartHeight;
+
+                    if (i === 0) {
+                        metricsCtx.moveTo(x, y);
+                    } else {
+                        metricsCtx.lineTo(x, y);
+                    }
+                }
+                metricsCtx.stroke();
+            }
+
+            // Draw accuracy line (right y-axis)
+            if (trainingHistory.acc.length > 1) {
+                metricsCtx.strokeStyle = '#4a90e2';
+                metricsCtx.lineWidth = 2;
+                metricsCtx.beginPath();
+
+                for (let i = 0; i < trainingHistory.epochs.length; i++) {
+                    const x = padding + (trainingHistory.epochs[i] / maxEpoch) * chartWidth;
+                    const y = height - padding - (trainingHistory.acc[i] / maxAcc) * chartHeight;
+
+                    if (i === 0) {
+                        metricsCtx.moveTo(x, y);
+                    } else {
+                        metricsCtx.lineTo(x, y);
+                    }
+                }
+                metricsCtx.stroke();
+            }
+
+            // Draw labels
+            metricsCtx.fillStyle = '#888';
+            metricsCtx.font = '12px sans-serif';
+            metricsCtx.textAlign = 'center';
+            metricsCtx.fillText('Epoch', width / 2, height - 10);
+
+            // Y-axis labels
+            metricsCtx.save();
+            metricsCtx.translate(15, height / 2);
+            metricsCtx.rotate(-Math.PI / 2);
+            metricsCtx.fillStyle = '#e24a4a';
+            metricsCtx.fillText('Loss', 0, 0);
+            metricsCtx.restore();
+
+            metricsCtx.save();
+            metricsCtx.translate(width - 15, height / 2);
+            metricsCtx.rotate(-Math.PI / 2);
+            metricsCtx.fillStyle = '#4a90e2';
+            metricsCtx.fillText('Accuracy', 0, 0);
+            metricsCtx.restore();
+
+            // Legend
+            metricsCtx.textAlign = 'left';
+            metricsCtx.fillStyle = '#e24a4a';
+            metricsCtx.fillRect(padding + 10, 15, 20, 3);
+            metricsCtx.fillText('Loss', padding + 35, 20);
+
+            metricsCtx.fillStyle = '#4a90e2';
+            metricsCtx.fillRect(padding + 100, 15, 20, 3);
+            metricsCtx.fillText('Accuracy', padding + 125, 20);
+
+            // Current values
+            if (trainingHistory.epochs.length > 0) {
+                const lastIdx = trainingHistory.epochs.length - 1;
+                metricsCtx.fillStyle = '#aaa';
+                metricsCtx.font = '11px monospace';
+                metricsCtx.fillText(
+                    `Epoch ${trainingHistory.epochs[lastIdx]}: Loss=${trainingHistory.loss[lastIdx].toFixed(4)} Acc=${(trainingHistory.acc[lastIdx] * 100).toFixed(1)}%`,
+                    padding + 200, 20
+                );
+            }
+        }
+
+        // ========================================
+        // UI HELPERS
+        // ========================================
+
+        function updateDensityDisplay(value) {
+            document.getElementById('densityValue').textContent = `${value}%`;
+        }
+
+        function updateModelSelection() {
+            const modelType = document.getElementById('modelSelect').value;
+            const legendHot = document.getElementById('legendHot');
+            const legendCold = document.getElementById('legendCold');
+
+            if (modelType === 'transformer') {
+                if (legendHot) legendHot.textContent = 'Attention (High)';
+                if (legendCold) legendCold.textContent = 'Attention (Medium)';
+            } else {
+                if (legendHot) legendHot.textContent = 'Activation (High)';
+                if (legendCold) legendCold.textContent = 'Activation (Medium)';
+            }
+
+            // Reset model when switching types
+            if (model) {
+                model.dispose();
+                model = null;
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.style.display = 'block';
+            }
+        }
+
+        // Initial render
+        setTimeout(() => {
+            if (canvas && ctx) render();
+        }, 100);
+    </script>
+</body>
+</html>

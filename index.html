@@ -52,6 +52,39 @@
           </tbody></table>
           <table style="width:100%;border:0px;border-spacing:0px 10px;border-collapse:separate;margin-right:auto;margin-left:auto;"><tbody>
 
+            <tr onmouseout="maze_stop()" onmouseover="maze_start()">
+              <td style="padding:16px;width:20%;vertical-align:middle">
+                <div class="one">
+                  <div class="two" id='maze_image'><video  width="160" muted autoplay loop>
+                  <source src="images/maze.mp4" type="video/mp4">
+                  Your browser does not support the video tag.
+                  </video></div>
+                  <img src='images/maze.png' width="160">
+                </div>
+                <script type="text/javascript">
+                  function maze_start() {
+                    document.getElementById('maze_image').style.opacity = "1";
+                  }
+
+                  function maze_stop() {
+                    document.getElementById('maze_image').style.opacity = "0";
+                  }
+                  maze_stop()
+                </script>
+              </td>
+              <td style="padding:8px;width:80%;vertical-align:middle">
+                <a href="/maze.html">
+                  <span class="papertitle">Maze Solver</span>
+                </a>
+                <br>
+                <strong>Tensorflow.js, CNN, Transformer</strong>
+                <br>
+                <p>
+                  A browser-based neural network trainer that teaches CNNs and Transformers to navigate mazes through imitation learning from A* pathfinding.
+                </p>
+              </td>
+            </tr>
+            
             <tr onmouseout="gd_stop()" onmouseover="gd_start()">
               <td style="padding:16px;width:20%;vertical-align:middle">
                 <div class="one">
